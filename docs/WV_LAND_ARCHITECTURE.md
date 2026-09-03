@@ -29,10 +29,13 @@ The flow ID is `wv-land-well-reconciliation`.
 ### Execution
 
 1. `land-case-intake` identifies the case scope, normalizes supplied identifiers, records the submitted facts, and lists evidence queries and missing inputs.
-2. Deterministic source services query or load WVDEP well, WVGES well, and relevant WVDEP production records. They save immutable raw snapshots and return normalized evidence.
-3. `land-well-lease-reconciliation` compares the submitted package with the independent public evidence. It produces findings about well identity, operator, farm or lease names, lease numbers, location, formation, status, completion, and production. It preserves conflicts and does not certify title.
-4. `case-synthesizer` consolidates findings, evidence, conflicts, unknowns, and failures. It proposes one next route and explains what a human must decide.
-5. Human review accepts, changes, rejects, or returns the proposed reconciliation. The run remains a review record. It does not file, update a registry, change payment data, or contact an owner.
+2. Deterministic source services acquire or load WVDEP well, WVGES well, and relevant WVDEP production records before the judgment steps. They save or reference immutable raw snapshots and provide normalized evidence plus deterministic tool results in the execution context. Phase 5 uses frozen fixture-backed context; live-source orchestration is later work.
+3. `land-well-reconciler` compares the submitted package with the independent public evidence. It produces transient structured findings about well identity, operator, farm or lease names, lease numbers, location, formation, status, completion, and production. It preserves conflicts and does not certify title.
+4. `case-synthesizer` consolidates the transient structured findings, evidence, conflicts, unknowns, and execution failures. It proposes one next route and explains what a human must decide.
+5. The structured result is available for the Phase 6 human-review lifecycle,
+which may accept, change, reject, or return the proposed reconciliation. Phase
+5 only proposes the route; it does not implement review persistence or execute
+any filing, registry update, payment change, or owner communication.
 
 Source retrieval is a deterministic operation, not an agent. Identifier normalization, parsing, coordinate distance, date handling, hashing, arithmetic, and production aggregation are deterministic TypeScript operations, not agent judgments.
 
@@ -41,10 +44,44 @@ Source retrieval is a deterministic operation, not an agent. Identifier normaliz
 | Agent | Bounded judgment | Must not do |
 | --- | --- | --- |
 | `land-case-intake` | Decide case scope, extract supplied clues, and identify missing evidence or candidate queries | Query sources by inventing identifiers or decide ownership |
-| `land-well-lease-reconciliation` | Compare supplied claims with independent normalized evidence and classify matches, conflicts, and unknowns | Certify title, resolve legal effect, or collapse source disagreement |
+| `land-well-reconciler` | Compare supplied claims with independent normalized evidence and classify matches, conflicts, and unknowns | Certify title, resolve legal effect, or collapse source disagreement |
 | `case-synthesizer` | Explain the evidence-bounded result and propose a human route | Execute a filing, payment change, registry update, or owner communication |
 
 There is no separate agent for every business role. A role becomes an agent only when it owns a bounded evidence-based judgment. Reusable comparison and evidence procedures belong in skills. Exact operations belong in tools and services.
+
+### Structured execution boundary
+
+The flagship flow consumes a typed execution context, not prose-only input. The
+context contains the case identity, synthetic submitted package, independently
+normalized `SourceEvidence` records, their `SourceSnapshot` references, and
+any required results from Phase 4 deterministic tools. Source adapters and
+tools populate this context before an agent step runs; agents do not retrieve,
+parse, normalize, hash, or calculate public evidence.
+
+Each step returns a validated structured result with its step status, the
+artifacts it produced, evidence and provenance references, and any routing
+outcome. Intake produces a bounded intake assessment. The reconciler produces
+transient `Finding`, `Conflict`, and `Unknown` records. The synthesizer
+produces a case-level result containing those records, execution status, and
+one proposed next route. Markdown or provider text can present the result, but
+is never the canonical finding or flow result.
+
+Phase 5 requires only the smallest provider-neutral runtime seam needed to
+pass this typed context and these typed artifacts through three ordered,
+required steps. The seam validates inputs and outputs, records explicit step
+success or failure, propagates required-step failures, and prevents successful
+synthesis when required upstream execution or evidence acquisition failed. It
+does not add general DAG scheduling, arbitrary expressions, distributed
+orchestration, durable storage, or parallelism. Phase 6 later persists the
+validated results and integrates human-review lifecycle state.
+
+Execution failure and business uncertainty are different states. An execution
+or source failure means a required step or evidence acquisition could not be
+completed as expected; it must remain a failure and cannot be relabeled as a
+normal unknown. Business uncertainty means execution succeeded but available
+evidence supports an `unknown`, `inconclusive`, or unresolved `Conflict`
+finding. The synthesizer preserves both states and cannot turn either into
+unsupported completion.
 
 ## Verified public sources
 
@@ -271,10 +308,22 @@ The current land catalog has 11 agents, 9 skills, and 5 flows. The following dec
 | `interest-reconciliation-reviewer` | convert-to-deterministic-tool | Exact interest arithmetic and comparison belong in TypeScript; legal interpretation remains human work |
 | `division-order-preparer` | delete | Payment preparation is outside the flagship |
 | `compliance-reviewer` | delete | No jurisdictional compliance review is in the initial workflow |
-| `case-synthesizer` | keep | Refine it to emit structured findings and one proposed human route |
-| new `land-well-lease-reconciliation` | replace | New bounded comparison judgment for the flagship |
+| `case-synthesizer` | keep | Refine it to emit transient structured findings and one proposed human route |
+| new `land-well-reconciler` | replace | New bounded comparison judgment for the flagship |
 
 ### Skills
+
+Phase 5 does not require preserving the legacy skill catalog. The canonical
+flagship agents are `land-case-intake`, `land-well-reconciler`, and
+`case-synthesizer`; the canonical flow is
+`wv-land-well-reconciliation`. Existing skills that remain reusable are kept
+only when their procedure is genuinely applicable: lease obligation analysis,
+lease lifecycle review, assignment transfer review, and general evidence
+comparison under `ownership-verification`. Their legacy flows and deleted
+agents are inactive capabilities. Exact arithmetic and comparison stay in the
+Phase 4 tools. No new skill is required solely to preserve an obsolete
+catalog entry; any renaming or consolidation needed for the flagship is part
+of Phase 5 and must be recorded in its spec.
 
 | Existing artifact | Decision | Target |
 | --- | --- | --- |
@@ -367,7 +416,12 @@ The suite must cover parser errors, null and changed fields, identifier variants
 
 ## Human review boundaries
 
-The runtime may recommend a route and save a review packet. A human must approve before any consequential action, including filing, registry update, payment setup or change, owner communication, marking an obligation satisfied or waived, or making a legal or title determination. The approval record stores the reviewer, decision, time, reason, and the exact run and evidence snapshot reviewed.
+The runtime may recommend a route and, beginning in Phase 6, save a review
+packet. A human must approve before any consequential action, including filing,
+registry update, payment setup or change, owner communication, marking an
+obligation satisfied or waived, or making a legal or title determination. The
+Phase 6 approval record stores the reviewer, decision, time, reason, and the
+exact run and evidence snapshot reviewed.
 
 ## Target directory structure
 

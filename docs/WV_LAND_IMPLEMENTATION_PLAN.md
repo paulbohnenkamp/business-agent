@@ -187,18 +187,95 @@ Run targeted unit tests for each tool, including null, malformed, boundary, and 
 
 ### Work
 
-Reduce the current land catalog according to the migration matrix in the architecture document. Replace `land-package-review` with `wv-land-well-reconciliation`. Implement only `land-case-intake`, `land-well-lease-reconciliation`, and `case-synthesizer` as agents. Convert reusable procedures to skills and exact comparison work to tools.
+Reduce the current land catalog according to the migration matrix in the architecture document. Replace `land-package-review` with `wv-land-well-reconciliation`. Implement exactly `land-case-intake`, `land-well-reconciler`, and `case-synthesizer` as the canonical agents. Keep only genuinely reusable existing skills; do not create skills merely to preserve inactive catalog entries. Exact comparison work remains in the Phase 4 tools.
 
-Keep the runtime catalog and core loader jurisdiction-neutral. Put WV-specific source identities and mapping in the domain-specific layer.
+Extend the jurisdiction-neutral runtime only with the smallest provider-neutral
+typed execution seam needed by this flow. The seam accepts a typed flow input,
+passes structured artifacts between three ordered required steps, validates
+typed step outputs, records explicit step success or failure, propagates
+required-step failures, and prevents successful synthesis when required
+upstream execution or evidence acquisition failed. It must not become a
+general workflow engine: no speculative DAGs, expression language,
+parallelism, distributed execution, retries beyond an existing required
+contract, or durable orchestration.
+
+The flow input contains case identity, synthetic submitted package data,
+independently normalized WVDEP/WVGES/production evidence, snapshot and
+provenance references, and deterministic Phase 4 results as needed. The flow
+output contains step statuses, transient structured `Finding`, `Conflict`, and
+`Unknown` records, evidence/provenance references, a synthesis result, a
+proposed next route, and an explicit incomplete or failed state when required.
+Markdown is presentation only, never the canonical finding or flow result.
+
+Conceptually, the artifacts passed between steps are:
+
+```text
+FlowInput {
+  caseIdentity, submittedPackage,
+  sourceEvidence[], sourceSnapshots[], deterministicResults[]
+}
+IntakeResult {
+  stepStatus, caseScope, suppliedClues[], missingEvidence[],
+  ambiguousInputs[], candidateQueries[], route, provenance
+}
+ReconciliationResult {
+  stepStatus, findings[], conflicts[], unknowns[],
+  evidenceRefs[], provenance, route
+}
+FlowResult {
+  stepStatuses[], findings[], conflicts[], unknowns[],
+  evidenceRefs[], synthesis, proposedRoute, status: complete | incomplete | failed
+}
+```
+
+The canonical definition paths are
+`domains/land-administration/agents/land-case-intake.agent.md`,
+`domains/land-administration/agents/land-well-reconciler.agent.md`,
+`domains/land-administration/agents/case-synthesizer.agent.md`, and
+`domains/land-administration/flows/wv-land-well-reconciliation.flow.md`.
+
+The ordered required steps are intake, reconciliation, and synthesis. Intake
+failure stops the flow. Reconciliation may produce legitimate unknowns or
+conflicts when its execution succeeds, but a reconciliation execution or
+required-evidence failure is propagated to synthesis. Synthesis always
+preserves upstream artifacts; with any required failure it returns an explicit
+incomplete or failed flow result and never reports successful completion.
+
+The three agents have these exact responsibilities:
+
+| Agent | Owns | Does not own |
+| --- | --- | --- |
+| `land-case-intake` | Bounded assessment of submitted material and whether clues/evidence are sufficient to proceed | Inventing identifiers, source retrieval, title or ownership judgment |
+| `land-well-reconciler` | Bounded comparison judgment over independent WVDEP/WVGES/production evidence and deterministic results; structured findings, conflicts, and unknowns | Publisher precedence, title certification, legal effect, exact calculations |
+| `case-synthesizer` | Case-level synthesis and one proposed next route from structured upstream artifacts | Converting failures into uncertainty, false completion, or consequential action |
+
+Evidence acquisition is separate from judgment. Frozen fixture-backed
+evidence is loaded by deterministic adapters/services before agent execution;
+agents consume that context and do not retrieve or parse public sources or
+redo exact normalization, hashing, date, coordinate, identifier, or
+production operations. Phase 5 is offline and does not require Foundry
+credentials. A provider-neutral executor may be used to exercise the same
+typed contract; Microsoft-specific behavior remains deferred.
+
+Execution failure means a required step or required evidence acquisition could
+not complete and remains a failure. Business uncertainty means execution
+succeeded but evidence supports an unknown, inconclusive finding, or
+unresolved conflict. The synthesizer preserves both and cannot relabel one as
+the other.
 
 ### Acceptance criteria
 
-- The flagship flow has explicit inputs, outputs, sequencing, branches, and failure rules.
-- Intake identifies missing evidence and does not infer identifiers.
-- Reconciliation compares independent source evidence and emits structured findings, conflicts, and unknowns.
-- Synthesis cannot mark the case complete when a required agent or evidence source failed.
-- The catalog no longer presents deleted V1 agents and flows as active flagship capabilities.
-- No runtime code performs title certification or consequential actions.
+- The canonical catalog contains exactly the three flagship agents and the `wv-land-well-reconciliation` flow; inactive V1 agents and flows are not presented as active flagship capabilities.
+- The canonical files and IDs are `land-case-intake`, `land-well-reconciler`, `case-synthesizer`, and `wv-land-well-reconciliation` at the documented paths.
+- The flow has a documented typed input, typed output, ordered required steps, explicit step statuses, routing outcomes, and failure propagation.
+- Fixture-backed normalized evidence and Phase 4 deterministic results enter the execution context before agent judgment; no agent owns source retrieval, parsing, or exact calculations.
+- Intake produces a validated structured assessment that preserves missing or ambiguous clues and never invents identifiers.
+- Reconciliation produces validated transient `Finding`, `Conflict`, and `Unknown` records with evidence and provenance references, while keeping WVDEP and WVGES independent.
+- Synthesis receives structured upstream artifacts and cannot report successful completion when a required step or required evidence source failed.
+- Business uncertainty remains distinct from execution failure; no normal unknown is fabricated from a failed source.
+- The flow preserves production no-match versus reported zero, historical multiplicity, source conflicts, and public-evidence/title boundaries.
+- Deterministic runtime boundaries reject title certification and consequential actions; no Phase 5 component performs them.
+- Offline deterministic contract and integration tests prove topology, typed I/O, artifact propagation, failure propagation, source independence, no-match/zero semantics, and prohibited behavior.
 
 ### Verification
 
@@ -206,22 +283,26 @@ Keep the runtime catalog and core loader jurisdiction-neutral. Put WV-specific s
 npm run typecheck
 npm test
 npm run build
-npm run eval -- wv-land-well-reconciliation
 ```
 
-Run catalog and architecture tests. Inspect the generated run record and verify that the source evidence and proposed route are present.
+Run the targeted Phase 5 contract/integration tests, catalog and architecture
+tests, and inspect a fixture-backed execution result for source evidence,
+structured artifacts, failure state, and proposed route. Behavioral evaluation
+is deferred to Phase 7.
 
 ## Phase 6: Persist structured findings and orchestrate review
 
 ### Work
 
-Make `Finding`, `Conflict`, and `Unknown` durable records linked to a case, run, source snapshot, and producer. Integrate them with `RunService`, existing provenance and audit records, and the human-review transition. Preserve agent Markdown as a presentation field only.
+Persist the validated structured Phase 5 flow result. Make `Finding`, `Conflict`, and `Unknown` durable records linked to case, run, source snapshots, and producer. Add retrieval of prior structured results, integrate with `RunService` persistence/audit boundaries as appropriate, and implement the human-review lifecycle including approval, rejection, and revision state. Preserve agent Markdown as presentation only.
 
 ### Acceptance criteria
 
 - Findings survive persistence and reload with evidence links intact.
+- Phase 6 consumes the Phase 5 structured result contracts rather than introducing a second output model.
 - Run history shows the source snapshot set used by the run.
-- A human-review transition records the proposed route and reviewer decision.
+- Prior structured findings, conflicts, and unknowns can be retrieved with their provenance intact.
+- A human-review transition records the proposed route and reviewer approval, rejection, or revision decision.
 - Approval does not execute a filing, payment, registry update, or communication.
 - A later refresh creates a new snapshot rather than mutating old evidence.
 
@@ -239,16 +320,17 @@ Run records, storage, API, and human-review tests. Inspect persisted JSON or dat
 
 ### Work
 
-Add separate evaluations for raw parsing, normalization, agent judgment, flow routing, adversarial inputs, cross-case leakage, and unauthorized actions. Build cases from checked-in WV snapshots and synthetic inputs. Include expected findings, required evidence, preserved conflicts, required unknowns, expected route, and prohibited claims.
+Build a behavioral evaluation harness around the validated structured Phase 5 execution model. Add separate fixture-backed evaluations for raw parsing, normalization, agent judgment, flow routing, adversarial inputs, cross-case leakage, and unauthorized actions. Build cases from checked-in WV snapshots and synthetic inputs. Include expected findings, required evidence, preserved conflicts, required unknowns, expected route, and prohibited claims. Do not use brittle exact prose comparisons.
 
 ### Acceptance criteria
 
 - No evaluation calls a live government endpoint.
 - Parser and normalization evals identify source-field and unit errors.
-- Agent evals require evidence-linked findings and preserve source disagreements.
+- Agent evals require structured evidence-linked findings and preserve source disagreements.
 - Flow evals verify missing evidence, failed-step, and human-review branches.
 - Adversarial cases reject prompt injection and unauthorized actions.
 - Cross-case cases prove that one case cannot use another case's data.
+- Evaluations distinguish execution failure from successful business uncertainty.
 
 ### Verification
 
