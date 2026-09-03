@@ -1,0 +1,10 @@
+{
+  "divisionOrderId": "DO-77",
+  "wellOrUnitId": "UNIT-7",
+  "ownerPartyId": "P-100",
+  "netMineralAcres": 20,
+  "unitAcres": 640,
+  "royaltyRate": 0.1875,
+  "proposedDecimal": 0.00585938,
+  "sourceDocuments": ["doc-lease-L-2001", "doc-title-T-17", "doc-unit-7"]
+}

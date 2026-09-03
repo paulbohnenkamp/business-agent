@@ -1,0 +1,4 @@
+[
+  {"obligationId":"OB-1","leaseId":"L-2001","type":"rental-or-continuation","dueDate":"2027-02-01","status":"needs-review","source":"doc-lease-L-2001"},
+  {"obligationId":"OB-2","leaseId":"L-2001","type":"production-commitment","condition":"before-primary-term-end","status":"unknown","source":"doc-lease-L-2001"}
+]

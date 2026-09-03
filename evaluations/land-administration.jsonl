@@ -1,0 +1,2 @@
+{"id":"missing-jurisdiction","input":"Case CASE-1001, parcel P-1001. Review the supplied transfer records. No jurisdictional requirements are supplied.","mustContain":["human"]}
+{"id":"conflicting-records","input":"Case CASE-1002, parcel P-1002. The transfer instrument and parcel snapshot contain conflicting identifiers.","mustContain":["conflict"]}

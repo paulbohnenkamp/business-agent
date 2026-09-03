@@ -1,0 +1,11 @@
+{
+  "leaseId": "L-2001",
+  "status": "active-review",
+  "effectiveDate": "2022-02-01",
+  "primaryTermEnd": "2027-02-01",
+  "tractId": "T-17",
+  "lessorPartyId": "P-100",
+  "lesseePartyId": "C-10",
+  "royaltyRate": 0.1875,
+  "sourceDocuments": ["doc-lease-L-2001", "doc-amendment-L-2001-A1"]
+}
