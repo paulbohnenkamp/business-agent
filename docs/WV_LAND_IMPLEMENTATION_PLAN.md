@@ -14,6 +14,10 @@ This plan turns [the West Virginia land architecture](WV_LAND_ARCHITECTURE.md) i
 
 ## Phase 1: Define evidence and domain contracts
 
+**Status: implemented and verified on 2026-09-03.** The contracts and JSON
+serialization boundary live under `src/domains/wv-land`; source adapters,
+fixtures, tools, agents, and flow work remain deferred to later phases.
+
 ### Work
 
 Define `SourceIdentity`, `SourceSnapshot`, `SourceEvidence`, `Finding`, `Conflict`, `Unknown`, `Well`, `ProductionRecord`, and their provenance fields. Decide serialization rules for IDs, timestamps, hashes, optional dates, warnings, evidence links, and status history. Add repository and service boundaries without adding WV-specific assumptions to `src/core`.
@@ -41,6 +45,23 @@ npm run build
 ```
 
 Inspect the diff and targeted contract tests. Record the test names and results in the approved implementation spec or result record.
+
+### Verification record
+
+- `node --version`: v24.14.1
+- `npm run typecheck`: passed
+- `node --import tsx --test tests/wv-land-contracts.test.ts`: passed
+- Full `npm test`: passed
+- `npm run build`: passed
+- `git diff --check`: passed
+- `npm run validate:records`: fails on pre-existing missing headings in specs 001–004 and results 001–004; this is unrelated to Phase 1 contracts.
+- `src/core` remains free of WVDEP, WVGES, and West Virginia constants.
+- Decoded metadata, normalized facts, evidence, and judgment records are
+  runtime-frozen; write-once immutable raw snapshot storage remains deferred to
+  the retrieval/persistence phases.
+- Dataset identities and normalized well facts retain the architecture's
+  value-only shapes; retrieval and production timestamps are carried by their
+  linked evidence records.
 
 ## Phase 2: Capture real WV evidence fixtures
 
@@ -249,6 +270,7 @@ npm run build
 
 Run any existing Foundry and retrieval tests. Run a live refresh only as an opt-in integration check and never as part of the deterministic test or evaluation command.
 
-## Stop condition for this documentation task
+## Phase approval boundary
 
-This plan is not an implementation approval. The current task stops after the architecture documents, guidance, and indexes are updated and validated. Do not begin Phase 1 until the user approves implementation.
+Phase 1 is authorized and complete. Do not begin Phase 2 until it is separately
+approved and Phase 1 remains a stable contract boundary.

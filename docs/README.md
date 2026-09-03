@@ -36,7 +36,7 @@ fake model/agent. Foundry tests use a fake HTTP provider. None of those are
 production data or a live language model.
 
 The generic `land-administration` catalog and its flows describe the current
-repository layout. The [WV land architecture](WV_LAND_ARCHITECTURE.md) and
-[implementation plan](WV_LAND_IMPLEMENTATION_PLAN.md) describe the planned
-flagship migration. The `wv-land-well-reconciliation` workflow is not part of
-the current runtime until a later approved implementation phase.
+repository layout. Phase 1 of the [WV land architecture](WV_LAND_ARCHITECTURE.md)
+is implemented as validated contracts under `src/domains/wv-land`; the source
+adapters and `wv-land-well-reconciliation` workflow remain planned for later
+approved phases.

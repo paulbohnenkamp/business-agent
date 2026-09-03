@@ -23,8 +23,10 @@ npm run cli -- flow list --domain land-administration
 ```
 
 The repository currently contains the generic `land-administration` domain and
-its demonstration flows. The planned `wv-land-well-reconciliation` workflow is
-the flagship direction; it is not implemented yet.
+its demonstration flows. Phase 1 of the `wv-land-well-reconciliation`
+architecture is implemented: the WV-specific evidence and domain contracts are
+available under `src/domains/wv-land`. The source adapters and flagship workflow
+remain planned for later phases.
 
 Then run the complete example in the [quickstart](docs/quickstart.md).
 
@@ -74,7 +76,9 @@ Implemented and tested locally:
 - cohesive `RunService` and `FoundryClient` boundaries;
 - domain-aware listing, run, and inspect commands;
 - the current generic `land-administration` demonstration domain; the WV
-  flagship migration remains planned;
+  flagship workflow migration remains planned;
+- West Virginia Phase 1 evidence, finding, conflict, unknown, well, and
+  production contracts with validated JSON serialization;
 - structured and adversarial evaluation cases;
 - local retrieval with provenance;
 - permissioned tools and MCP catalog seam;

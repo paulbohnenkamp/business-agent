@@ -14,6 +14,8 @@ Implemented locally:
 - `FoundryClient` provider boundary with fake HTTP tests;
 - JSONL evaluation cases and local executor evaluation;
 - land-administration reference domain;
+- West Virginia Phase 1 evidence and domain contracts with validated JSON
+  serialization under `src/domains/wv-land`;
 - local catalog and human-review web surface;
 - pstack prompts and an append-only build decision trail.
 
@@ -80,5 +82,5 @@ adversarial set is kept separate so it can be run as a regression suite.
 | Retrieval | Ranked local results with provenance |
 | Tools/MCP | Permission, required-input, and catalog contract tests |
 | Foundry | Fake HTTP success and provider-error tests |
-| Documentation | README, map, architecture, data model, runtime, eval, and safety docs |
+| Documentation | README, map, architecture, data model, runtime, eval, safety, and WV flagship docs |
 | Build | TypeScript check, tests, and Next production build |
