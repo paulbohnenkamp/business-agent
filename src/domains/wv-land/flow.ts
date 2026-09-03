@@ -27,6 +27,16 @@ export function validateWvFlowInput(value: unknown): value is WvFlowInput {
   return value.submittedPackage.caseId === value.caseId && value.sourceEvidence.every(isWvEvidence) && value.sourceSnapshots.every(isSnapshot) && value.evidenceAcquisition.every(isAcquisition);
 }
 
+export function validateWvFlowResult(value: unknown): value is WvFlowResult {
+  if (!isRecord(value) || value.flowId !== "wv-land-well-reconciliation" || typeof value.caseId !== "string" || !["complete", "incomplete", "failed"].includes(value.status as string) || !Array.isArray(value.steps) || !Array.isArray(value.findings) || !Array.isArray(value.conflicts) || !Array.isArray(value.unknowns) || !isStringArray(value.evidenceRefs)) return false;
+  if (!value.findings.every(isFinding) || !value.conflicts.every(isConflict) || !value.unknowns.every(isUnknown) || !value.findings.every((finding) => finding.caseId === value.caseId)) return false;
+  if (value.synthesis !== undefined && (!validateSynthesis(value.synthesis) || value.synthesis.caseId !== value.caseId)) return false;
+  if (value.status === "failed" && (value.executionFailure === undefined || value.synthesis !== undefined)) return false;
+  if (value.status !== "failed" && value.executionFailure !== undefined) return false;
+  if (value.executionFailure !== undefined && (!isRecord(value.executionFailure) || typeof value.executionFailure.stepId !== "string" || (value.executionFailure.kind !== "execution" && value.executionFailure.kind !== "validation") || typeof value.executionFailure.message !== "string")) return false;
+  return value.steps.every(isStepRecord);
+}
+
 export function validateIntake(value: unknown): value is IntakeResult { return isRecord(value) && value.kind === "intake" && typeof value.caseId === "string" && (value.caseScope === "well-reconciliation" || value.caseScope === "insufficient-scope") && isStringRecord(value.suppliedClues) && isStringArray(value.missingEvidence) && isStringArray(value.ambiguousInputs) && isStringArray(value.candidateQueries) && isRoute(value.route) && isStringArray(value.evidenceIds); }
 export function validateReconciliation(value: unknown): value is ReconciliationResult { return isRecord(value) && value.kind === "reconciliation" && typeof value.caseId === "string" && Array.isArray(value.findings) && Array.isArray(value.conflicts) && Array.isArray(value.unknowns) && value.findings.every(isFinding) && value.conflicts.every(isConflict) && value.unknowns.every(isUnknown) && isStringArray(value.evidenceRefs) && isRoute(value.route); }
 export function validateSynthesis(value: unknown): value is SynthesisResult { return isRecord(value) && value.kind === "synthesis" && typeof value.caseId === "string" && Array.isArray(value.findings) && Array.isArray(value.conflicts) && Array.isArray(value.unknowns) && value.findings.every(isFinding) && value.conflicts.every(isConflict) && value.unknowns.every(isUnknown) && isStringArray(value.evidenceRefs) && typeof value.synthesis === "string" && isRoute(value.proposedRoute); }
@@ -59,6 +69,11 @@ function isSubmittedPackage(value: unknown): value is SubmittedLandPackage { ret
 function isSnapshot(value: unknown): value is SourceSnapshot { try { if (!isRecord(value)) return false; const serialized = JSON.stringify(value); if (serialized === undefined) return false; sourceCodec.decodeSnapshot(serialized); return true; } catch { return false; } }
 function isWvEvidence(value: unknown): value is WvEvidence { try { if (!isRecord(value) || !isRecord(value.normalizedFacts)) return false; const serialized = JSON.stringify(value); if (serialized === undefined) return false; if ("productionRecordId" in value.normalizedFacts) sourceCodec.decodeProductionEvidence(serialized); else sourceCodec.decodeWellEvidence(serialized); return true; } catch { return false; } }
 function isAcquisition(value: unknown): value is EvidenceAcquisition { return isRecord(value) && typeof value.sourceId === "string" && typeof value.required === "boolean" && (value.status === "succeeded" || value.status === "failed") && isStringArray(value.evidenceIds) && (value.error === undefined || typeof value.error === "string"); }
+function isStepRecord(value: unknown): value is OrderedFlowExecution["steps"][number] {
+  if (!isRecord(value) || typeof value.stepId !== "string" || !["succeeded", "failed", "blocked"].includes(value.status as string)) return false;
+  if (value.status === "succeeded") return Object.prototype.hasOwnProperty.call(value, "artifact");
+  return (value.kind === "execution" || value.kind === "validation") && typeof value.error === "string";
+}
 function isFinding(value: unknown): value is Finding { try { if (!isRecord(value)) return false; const serialized = JSON.stringify(value); if (serialized === undefined) return false; judgmentCodec.decodeFinding(serialized); return true; } catch { return false; } }
 function isConflict(value: unknown): value is Conflict { try { if (!isRecord(value)) return false; const serialized = JSON.stringify(value); if (serialized === undefined) return false; judgmentCodec.decodeConflict(serialized); return true; } catch { return false; } }
 function isUnknown(value: unknown): value is Unknown { try { if (!isRecord(value)) return false; const serialized = JSON.stringify(value); if (serialized === undefined) return false; judgmentCodec.decodeUnknown(serialized); return true; } catch { return false; } }

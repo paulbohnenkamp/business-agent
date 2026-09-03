@@ -6,8 +6,8 @@ import { validateFlow } from "./flows";
 import { FileRunStore, type RunStore } from "./storage";
 import { validateAgentOutput, type AgentOutputEnvelope } from "./contracts";
 
-export type RunStatus = "running" | "complete" | "failed";
-export type ReviewStatus = "not-required" | "pending-human-review" | "approved" | "rejected";
+export type RunStatus = "running" | "complete" | "incomplete" | "failed";
+export type ReviewStatus = "not-required" | "pending-human-review" | "approved" | "rejected" | "revision-requested";
 
 export interface AgentExecutionResult {
   agentId: string;
@@ -30,6 +30,11 @@ export interface RunRecord {
   errors: string[];
   reviewStatus: ReviewStatus;
   handoffs: Array<{ from: string; to: string; outputPath: string }>;
+  /** Generic references for structured domain run artifacts. */
+  caseId?: string;
+  structuredResultRef?: string;
+  sourceSnapshotIds?: string[];
+  reviewPacketRef?: string;
 }
 
 export interface AgentExecutor {

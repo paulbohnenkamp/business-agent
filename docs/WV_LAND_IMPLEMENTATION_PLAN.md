@@ -315,6 +315,12 @@ is deferred to Phase 7.
 
 ## Phase 6: Persist structured findings and orchestrate review
 
+Status: implemented and verified on 2026-09-03. The WV domain now persists a
+validated case/run aggregate containing the Phase 5 structured result, exact
+source snapshot/evidence associations, and an append-only human review
+history. Generic run history contains only jurisdiction-neutral references to
+the structured result, snapshots, and review packet.
+
 ### Work
 
 Persist the validated structured Phase 5 flow result. Make `Finding`, `Conflict`, and `Unknown` durable records linked to case, run, source snapshots, and producer. Add retrieval of prior structured results, integrate with `RunService` persistence/audit boundaries as appropriate, and implement the human-review lifecycle including approval, rejection, and revision state. Preserve agent Markdown as presentation only.
@@ -338,6 +344,25 @@ npm run build
 ```
 
 Run records, storage, API, and human-review tests. Inspect persisted JSON or database records directly and check `git diff --check`.
+
+### Verification record
+
+- node --version: v24.14.1
+- targeted Phase 1–6 tests: passed, 38 tests
+- npm test: passed, 94 tests
+- npm run typecheck: passed
+- npm run build: passed; existing Next.js package-lock tracing warning only
+- git diff --check: passed
+- frozen Phase 2 fixture/hash tests: passed
+- The core leakage check found only generic Finding, Conflict, Unknown, and
+  action-port vocabulary; no West Virginia or land-specific vocabulary.
+- Persistence tests verify aggregate reload, provenance and snapshot
+  associations, historical runs, fail-closed integrity checks, failure versus
+  uncertainty, review transitions, append-only decisions, revision lineage,
+  generic run-history synchronization, publication failure recovery, and
+  JSON-safe prepublication validation.
+- npm run validate:records passes for the Phase 6 spec/result pair; legacy
+  records 001–004 retain their pre-existing missing-section findings.
 
 ## Phase 7: Add fixture-backed evaluations
 
