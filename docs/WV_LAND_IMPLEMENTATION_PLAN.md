@@ -185,6 +185,12 @@ Run targeted unit tests for each tool, including null, malformed, boundary, and 
 
 ## Phase 5: Simplify the domain and implement the flagship flow
 
+**Status: implemented and verified on 2026-09-03.** The active catalog now
+exposes the three canonical agents and flagship flow, while a topology-neutral
+typed-step seam validates transient structured artifacts and propagates
+required-step failures. Production agent judgment remains behind an injected
+provider-neutral executor; offline Phase 5 tests use only a test-scoped stub.
+
 ### Work
 
 Reduce the current land catalog according to the migration matrix in the architecture document. Replace `land-package-review` with `wv-land-well-reconciliation`. Implement exactly `land-case-intake`, `land-well-reconciler`, and `case-synthesizer` as the canonical agents. Keep only genuinely reusable existing skills; do not create skills merely to preserve inactive catalog entries. Exact comparison work remains in the Phase 4 tools.
@@ -212,7 +218,8 @@ Conceptually, the artifacts passed between steps are:
 ```text
 FlowInput {
   caseIdentity, submittedPackage,
-  sourceEvidence[], sourceSnapshots[], deterministicResults[]
+  sourceEvidence[], sourceSnapshots[], deterministicResults[],
+  evidenceAcquisition[]
 }
 IntakeResult {
   stepStatus, caseScope, suppliedClues[], missingEvidence[],
@@ -234,7 +241,10 @@ The canonical definition paths are
 `domains/land-administration/agents/case-synthesizer.agent.md`, and
 `domains/land-administration/flows/wv-land-well-reconciliation.flow.md`.
 
-The ordered required steps are intake, reconciliation, and synthesis. Intake
+The ordered required steps are intake, reconciliation, and synthesis. Required
+evidence acquisition status is supplied before those steps; successful
+acquisition with no matching evidence remains business evidence state, while
+required acquisition failure is an execution failure. Intake
 failure stops the flow. Reconciliation may produce legitimate unknowns or
 conflicts when its execution succeeds, but a reconciliation execution or
 required-evidence failure is propagated to synthesis. Synthesis always
@@ -289,6 +299,19 @@ Run the targeted Phase 5 contract/integration tests, catalog and architecture
 tests, and inspect a fixture-backed execution result for source evidence,
 structured artifacts, failure state, and proposed route. Behavioral evaluation
 is deferred to Phase 7.
+
+### Verification record
+
+- `node --version`: v24.14.1
+- `npm run typecheck`: passed
+- targeted Phase 1–5 tests: passed, including `tests/wv-land-flow.test.ts`
+- `npm test`: passed, 81 tests
+- `npm run build`: passed; existing Next.js package-lock tracing warning only
+- `git diff --check`: passed
+- `rg -n -i 'wvdep|wvges|west virginia|well|land' src/core`: no matches
+- Phase 2 frozen fixture/hash tests: passed; raw snapshots unchanged
+- `npm run validate:records`: expected pre-existing findings remain in
+  records 001–004; the Phase 5 record pair is valid after result creation.
 
 ## Phase 6: Persist structured findings and orchestrate review
 

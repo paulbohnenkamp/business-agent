@@ -9,7 +9,10 @@ description: "Review and route land, lease, ownership, and production-interest c
 
 ## Purpose
 
-This domain supports evidence-bounded review and routing of land-administration cases such as lease lifecycle events, parcel transfers, ownership changes, interest reconciliation, and division-order preparation. Surface-rights work is a documented future extension. It is a reference implementation, not legal or accounting advice.
+The active Phase 5 workflow supports evidence-bounded reconciliation of a
+submitted synthetic well case with independent normalized public evidence.
+Historical lease, transfer, ownership, and division-order definitions remain
+on disk but are inactive. This is not legal or accounting advice.
 
 ## Vocabulary
 
@@ -40,7 +43,9 @@ The reference fixtures in `examples/land-records/` intentionally use fictional I
 
 ## Workflows
 
-`parcel-transfer-review` covers a land-record transfer. `land-package-review` covers a broader lease/ownership package. `lease-lifecycle-review` focuses on obligations and upcoming events. `division-order-preparation` checks evidence and interest math before a draft payment record is routed to a human.
+`wv-land-well-reconciliation` runs intake, bounded well reconciliation, and
+case synthesis. Findings are transient in Phase 5; persistence and review
+lifecycle belong to Phase 6.
 
 The workflow accepts a case bundle and produces an auditable review packet. Intake establishes scope and record completeness. Ownership verification and compliance review then run from the intake result and may proceed in parallel. A case synthesizer preserves specialist findings and conflicts, identifies uncertainty, and recommends the next administrative route for human confirmation.
 

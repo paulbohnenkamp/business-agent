@@ -5,76 +5,30 @@ description: "Evidence-bounded land, lease, ownership, and production-interest o
 # This catalog is intentionally declarative. It is suitable for review by a
 # product owner and can later become a Microsoft Foundry/Azure DevOps manifest.
 agents:
-  - id: intake-reviewer
-    file: agents/intake-reviewer.agent.md
-    purpose: "Establish case scope, identifiers, source snapshot, and missing records."
-  - id: land-package-triage
-    file: agents/land-package-triage.agent.md
-    purpose: "Classify a land package and select bounded specialist reviews."
-  - id: lease-obligation-reviewer
-    file: agents/lease-obligation-reviewer.agent.md
-    purpose: "Extract lease obligations and evidence limitations."
-  - id: lease-lifecycle-reviewer
-    file: agents/lease-lifecycle-reviewer.agent.md
-    purpose: "Review term events, deadlines, continuation, and lifecycle risk."
-  - id: title-chain-reviewer
-    file: agents/title-chain-reviewer.agent.md
-    purpose: "Trace title evidence and identify gaps or conflicting instruments."
-  - id: assignment-transfer-reviewer
-    file: agents/assignment-transfer-reviewer.agent.md
-    purpose: "Review assignments against underlying agreements and ownership evidence."
-  - id: ownership-reviewer
-    file: agents/ownership-reviewer.agent.md
-    purpose: "Assess parties, authority, and ownership evidence for a transfer."
-  - id: interest-reconciliation-reviewer
-    file: agents/interest-reconciliation-reviewer.agent.md
-    purpose: "Compare stated ownership or economic interests and preserve conflicts."
-  - id: division-order-preparer
-    file: agents/division-order-preparer.agent.md
-    purpose: "Draft and explain production-interest calculations before approval."
-  - id: compliance-reviewer
-    file: agents/compliance-reviewer.agent.md
-    purpose: "Apply only supplied jurisdictional requirements and route unknowns."
+  - id: land-case-intake
+    file: agents/land-case-intake.agent.md
+    purpose: "Assess submitted clues and identify evidence gaps without inventing identifiers."
+  - id: land-well-reconciler
+    file: agents/land-well-reconciler.agent.md
+    purpose: "Compare independent normalized well and production evidence with submitted clues."
   - id: case-synthesizer
     file: agents/case-synthesizer.agent.md
-    purpose: "Combine findings, uncertainty, provenance, and the next human route."
+    purpose: "Synthesize structured findings and propose one human route without taking action."
 
 skills:
-  - id: land-package-triage
-    file: skills/land-package-triage/SKILL.md
   - id: lease-obligation-analysis
     file: skills/lease-obligation-analysis/SKILL.md
   - id: lease-lifecycle-review
     file: skills/lease-lifecycle-review/SKILL.md
-  - id: title-chain-review
-    file: skills/title-chain-review/SKILL.md
-  - id: ownership-interest-reconciliation
-    file: skills/ownership-interest-reconciliation/SKILL.md
   - id: ownership-verification
     file: skills/ownership-verification/SKILL.md
-  - id: parcel-record-analysis
-    file: skills/parcel-record-analysis/SKILL.md
-  - id: division-order-preparation
-    file: skills/division-order-preparation/SKILL.md
   - id: assignment-transfer-review
     file: skills/assignment-transfer-review/SKILL.md
 
 flows:
-  - id: parcel-transfer-review
-    file: flows/parcel-transfer-review.flow.md
-    purpose: "Review a proposed parcel transfer."
-  - id: land-package-review
-    file: flows/land-package-review.flow.md
-    purpose: "Triage and review a mixed lease/ownership package."
-  - id: lease-lifecycle-review
-    file: flows/lease-lifecycle-review.flow.md
-    purpose: "Extract and route lease lifecycle obligations."
-  - id: division-order-preparation
-    file: flows/division-order-preparation.flow.md
-    purpose: "Prepare a production-interest draft for human approval."
-  - id: assignment-transfer-review
-    file: flows/assignment-transfer-review.flow.md
-    purpose: "Review an assignment before a record update."
+  - id: wv-land-well-reconciliation
+    file: flows/wv-land-well-reconciliation.flow.md
+    purpose: "Reconcile submitted well clues with independent public evidence and route uncertainty."
 
 human_control:
   required_before:

@@ -35,8 +35,8 @@ Seed records are fictional business inputs. `MockExecutor` is the deterministic
 fake model/agent. Foundry tests use a fake HTTP provider. None of those are
 production data or a live language model.
 
-The generic `land-administration` catalog and its flows describe the current
-repository layout. Phase 1 of the [WV land architecture](WV_LAND_ARCHITECTURE.md)
-is implemented as validated contracts under `src/domains/wv-land`; the source
-adapters and `wv-land-well-reconciliation` workflow remain planned for later
-approved phases.
+The active `land-administration` catalog now exposes the Phase 5
+`wv-land-well-reconciliation` workflow and its three canonical agents. The
+source adapters and deterministic tools are implemented offline; durable
+findings, behavioral evaluations, and live provider integration remain later
+phases.

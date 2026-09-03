@@ -1,8 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { loadAgents } from "../core/agents";
+import { loadActiveCatalog } from "../core/catalog";
 import { loadConfig } from "../core/config";
-import { loadFlows } from "../core/flows";
 import { runFlow } from "../core/orchestrator";
 
 function usage(): string {
@@ -37,18 +36,19 @@ async function main(): Promise<void> {
   const domain = requiredOption(args, "--domain");
   const domainRoot = join(root, domain);
   if (command === "agent" && args[0] === "list") {
-    for (const id of (await loadAgents(domainRoot)).keys()) console.log(id);
+    for (const id of (await loadActiveCatalog(domainRoot)).agents.keys()) console.log(id);
     return;
   }
   if (command === "flow" && args[0] === "list") {
-    for (const id of (await loadFlows(domainRoot)).keys()) console.log(id);
+    for (const id of (await loadActiveCatalog(domainRoot)).flows.keys()) console.log(id);
     return;
   }
   if (command === "run") {
     const flowId = requiredOption(args, "--flow");
     const contextPath = requiredOption(args, "--context");
-    const agents = await loadAgents(domainRoot);
-    const flow = (await loadFlows(domainRoot)).get(flowId);
+    const catalog = await loadActiveCatalog(domainRoot);
+    const agents = new Map(catalog.agents);
+    const flow = catalog.flows.get(flowId);
     if (!flow) throw new Error(`Flow not found: ${flowId}`);
     const record = await runFlow({ root: loadConfig().workspacePath, domain, flow, agents, context: await readFile(resolve(contextPath), "utf8") });
     console.log(`Run ${record.id}: ${record.status}`);

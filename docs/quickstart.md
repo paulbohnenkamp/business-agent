@@ -15,14 +15,14 @@ Run the offline reference flow.
 export BUSINESS_AGENT_WORKSPACE=/tmp/business-agent-run
 npm run cli -- run \
   --domain land-administration \
-  --flow parcel-transfer-review \
+  --flow wv-land-well-reconciliation \
   --context examples/inputs/parcel-transfer.md
 ```
 
-The run writes `input.md`, `run.json`, and one Markdown output per agent under
-`/tmp/business-agent-run/runs/<run-id>/`. The default executor is deterministic
-and offline. Microsoft Foundry execution is an adapter behind the same
-boundary.
+The active catalog resolves only the Phase 5 flagship definitions. The
+existing CLI runner remains the legacy Markdown runner; typed WV execution
+requires a provider-neutral agent executor and is exercised offline through
+test infrastructure. Microsoft Foundry integration is deferred to Phase 9.
 
 Run the local evaluation harness:
 

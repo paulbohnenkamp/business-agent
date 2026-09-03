@@ -8,15 +8,14 @@ import { loadFlows, validateFlow } from "../src/core/flows";
 import { runFlow, RunService, updateReviewStatus } from "../src/core/orchestrator";
 
 describe("domain-oriented agent architecture", () => {
-  it("loads generated Markdown agents and flows", async () => {
+  it("loads the canonical Phase 5 Markdown agents and flow", async () => {
     const root = join(process.cwd(), "domains", "land-administration");
     const agents = await loadAgents(root);
     const flows = await loadFlows(root);
-    assert.deepEqual([...agents.keys()], ["assignment-transfer-reviewer", "case-synthesizer", "compliance-reviewer", "division-order-preparer", "intake-reviewer", "interest-reconciliation-reviewer", "land-package-triage", "lease-lifecycle-reviewer", "lease-obligation-reviewer", "ownership-reviewer", "title-chain-reviewer"]);
-    const flow = flows.get("parcel-transfer-review");
+    const flow = flows.get("wv-land-well-reconciliation");
     assert.ok(flow);
     validateFlow(flow, agents);
-    assert.deepEqual(flow.agents, ["intake-reviewer", "ownership-reviewer", "compliance-reviewer", "case-synthesizer"]);
+    assert.deepEqual(flow.agents, ["land-case-intake", "land-well-reconciler", "case-synthesizer"]);
   });
 
   it("runs a flow with the deterministic mock executor and persists an audit record", async () => {
