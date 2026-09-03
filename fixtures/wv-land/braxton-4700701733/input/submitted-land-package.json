@@ -1,0 +1,13 @@
+{
+  "caseId": "synthetic-wv-case-braxton-001",
+  "synthetic": true,
+  "description": "Synthetic submitted package created for offline fixture tests; it is not a real person's private record.",
+  "clues": {
+    "apiNumber": "4700701733",
+    "county": "Braxton",
+    "wellNumber": "3-S-245"
+  },
+  "claims": [],
+  "titleAssertion": null,
+  "note": "Public well evidence may support identity comparison only. Mineral title requires separate county/title evidence and remains unknown."
+}

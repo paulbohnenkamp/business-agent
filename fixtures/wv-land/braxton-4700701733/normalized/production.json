@@ -1,0 +1,7 @@
+{
+  "resultType": "no-match",
+  "sourceSnapshotId": "snapshot-2026-09-03-wvdep-production-2025",
+  "apiNumberQueried": "4700701733",
+  "records": [],
+  "selectionNote": "The captured 2025 workbook contains no row for API 4700701733; absence is preserved as no normalized production record, not zero production."
+}

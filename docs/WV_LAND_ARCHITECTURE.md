@@ -334,6 +334,29 @@ fixtures/wv-land/<case-id>/
 
 The manifest records source identity, request URL, source record ID, retrieval time, effective or publication date, SHA-256, raw snapshot reference, parser version, and fixture version. Adapter contract tests use raw snapshots. Parser and normalization tests compare normalized records. Agent tests consume normalized evidence. Flow tests verify sequencing, branches, failure preservation, human review, and no unauthorized actions.
 
+### Phase 2 fixture currently checked in
+
+`fixtures/wv-land/braxton-4700701733/` is a historical, offline fixture set
+captured on September 3, 2026. Its raw files are the exact WVDEP layer-7
+GeoJSON response for API `4700701733`, the exact WVGES layer-4 GeoJSON
+response for that API, and the exact WVDEP `2025Production.xlsx` download.
+The normalized JSON links each expected record back to its source snapshot;
+the workbook expectation is explicitly a `no-match` result: the selected API
+has no row, which is different from reported zero production. The complete
+workbook is intentionally retained because it is the authentic source needed
+to verify that negative result. Before adding another comparably large
+production workbook, review repository storage strategy, including Git LFS or
+external immutable artifact storage, to avoid uncontrolled repository growth.
+The submitted package in `input/` is
+synthetic and contains only matching clues; it is not a private lease or title
+package.
+
+Fixture tests recompute SHA-256 and byte length from the committed raw bytes,
+then validate normalized well evidence through the Phase 1 codecs. Tests use
+the frozen historical files and never refresh them or call government
+endpoints. A future live refresh is a new retrieval with a new snapshot ID,
+timestamp, raw file, and hash; it must not mutate this historical fixture.
+
 The suite must cover parser errors, null and changed fields, identifier variants, coordinate tolerances, source disagreement, missing evidence, prompt injection in submitted text, cross-case leakage, and requests to file, pay, update, or communicate without approval.
 
 ## Human review boundaries

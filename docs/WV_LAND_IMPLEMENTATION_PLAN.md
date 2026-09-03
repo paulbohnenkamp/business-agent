@@ -65,6 +65,10 @@ Inspect the diff and targeted contract tests. Record the test names and results 
 
 ## Phase 2: Capture real WV evidence fixtures
 
+**Status: implemented and verified on 2026-09-03.** The fixture-backed case
+`braxton-4700701733` contains authentic public snapshots captured from WVDEP
+and WVGES, plus a synthetic submitted package. No source adapters were added.
+
 ### Work
 
 Capture a small set of real public records from the verified WVDEP and WVGES ArcGIS layers and one WVDEP production workbook. Use a synthetic submitted package that contains clues matching the public records without copying a private person's records. Save exact raw responses, request metadata, retrieval timestamps, content types, SHA-256 hashes, and normalized expected representations.
@@ -90,6 +94,26 @@ npm run build
 ```
 
 Add a fixture-integrity test that recomputes SHA-256 and fails on a changed raw file. Run the test with network access disabled if the repository supports that mode.
+
+### Verification record
+
+- `node --version`: v24.14.1
+- `npm run typecheck`: passed
+- `npm test`: passed, including `tests/wv-land-fixtures.test.ts`
+- `npm run build`: passed
+- `git diff --check`: passed
+- Fixture-integrity tests recompute SHA-256 and byte lengths from committed
+  WVDEP JSON, WVGES GeoJSON, and WVDEP XLSX bytes without network access.
+- WVDEP and WVGES remain separate source identities; the fixture preserves the
+  operator disagreement and does not convert the workbook's missing API row
+  into zero production.
+- The complete 2025 workbook is intentionally retained to make the negative
+  no-match result independently verifiable. Before adding another comparably
+  large workbook, review Git LFS or external immutable artifact storage to
+  prevent uncontrolled repository growth.
+- `npm run validate:records`: to be run after the matching result record is
+  created; pre-existing records 001–004 have unrelated missing-heading
+  findings.
 
 ## Phase 3: Implement deterministic WV source adapters
 

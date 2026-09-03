@@ -1,0 +1,52 @@
+{
+  "fixtureVersion": "1",
+  "caseId": "braxton-4700701733",
+  "description": "Authentic public WV well snapshots for API 4700701733 plus a synthetic submitted package.",
+  "capturedAt": "2026-09-03",
+  "syntheticInput": true,
+  "titleEvidenceBoundary": "WVDEP and WVGES public records do not establish mineral title.",
+  "snapshots": [
+    {
+      "snapshotId": "snapshot-2026-09-03-wvdep-well-4700701733",
+      "source": {"id":"wvdep-oog-rbdms-wells","publisher":"WVDEP","dataset":"Enterprise oil and gas wells","mechanism":"arcgis-rest","datasetVersion":"MapServer layer 7","authorityScope":"reported regulatory well information"},
+      "sourceRecordIds": ["objectid:99486","objectid:100001","objectid:104461"],
+      "requestUrl": "https://tagis.dep.wv.gov/arcgis/rest/services/WVDEP_enterprise/oil_gas/MapServer/7/query?where=api%3D%274700701733%27&outFields=%2A&returnGeometry=true&f=geojson",
+      "retrievedAt": "2026-09-03T18:30:03.000Z",
+      "contentType": "application/geo+json",
+      "contentHash": "6452f8d34eb7c4bfd90277299e206fbfb33d54b8e4f58660c024eca94c8251ea",
+      "rawSnapshotRef": "fixtures/wv-land/braxton-4700701733/raw/wvdep-well.json",
+      "byteLength": 2720,
+      "parserVersion": "not-parsed-phase-2",
+      "immutable": true
+    },
+    {
+      "snapshotId": "snapshot-2026-09-03-wvges-well-4700701733",
+      "source": {"id":"wvges-oilgas-wells","publisher":"WVGES","dataset":"OilGas_WVOG all individual oil and gas wells","mechanism":"arcgis-rest","datasetVersion":"MapServer layer 4","authorityScope":"geological and historical well information"},
+      "sourceRecordIds": ["OBJECTID:21403259","OBJECTID:21403260"],
+      "requestUrl": "https://atlas2.wvgs.wvnet.edu/server/rest/services/OilGas_WVOG/WVOG_Layer/MapServer/4/query?where=api%20%3D%204700701733&outFields=%2A&returnGeometry=true&f=geojson",
+      "retrievedAt": "2026-09-03T18:30:05.000Z",
+      "contentType": "application/geo+json",
+      "contentHash": "868ea2f38e0236522b8d9f07555ae5b6435601753b5d31c3ea5cebe78fe420b9",
+      "rawSnapshotRef": "fixtures/wv-land/braxton-4700701733/raw/wvges-well.geojson",
+      "byteLength": 1745,
+      "parserVersion": "not-parsed-phase-2",
+      "immutable": true
+    },
+    {
+      "snapshotId": "snapshot-2026-09-03-wvdep-production-2025",
+      "source": {"id":"wvdep-annual-production","publisher":"WVDEP","dataset":"Annual oil and gas production workbook","mechanism":"xlsx-download","datasetVersion":"2025Production.xlsx","authorityScope":"operator-reported annual production"},
+      "sourceRecordIds": [],
+      "requestUrl": "https://apps.dep.wv.gov/Documents/OOG/ProductionReports/2020-2029/2025Production.xlsx",
+      "retrievedAt": "2026-09-03T18:29:54.000Z",
+      "effectiveDate": "2025-12-31",
+      "publicationDate": "2026-08-05",
+      "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "contentHash": "840fd3e93aa545ecfdf1c72c049216e1433a25cfde2d84e8669b191927378491",
+      "rawSnapshotRef": "fixtures/wv-land/braxton-4700701733/raw/wvdep-production.xlsx",
+      "byteLength": 13800342,
+      "parserVersion": "not-parsed-phase-2",
+      "immutable": true,
+      "selectionNote": "The workbook contains no row for API 4700701733; no production fact is normalized."
+    }
+  ]
+}
