@@ -150,6 +150,15 @@ Run targeted adapter contract tests and inspect normalized output against the ch
 
 ## Phase 4: Implement deterministic tools
 
+**Status: implemented and verified on 2026-09-03.** Reusable pure tools for
+identifiers, names, source dates, coordinates, hashing, and production
+aggregation live under `src/domains/wv-land/tools`. Production aggregation is
+provenance-aware and conservative: incompatible, duplicate, or overlapping
+evidence is surfaced rather than silently summed. Coordinates use an explicitly
+approximate spherical haversine calculation, not survey measurement. Agents, flows,
+reconciliation, persistence, evaluations, and live-source orchestration remain
+deferred to later phases.
+
 ### Work
 
 Implement exact tools for API and permit normalization, name normalization, date parsing and comparison, coordinate distance with declared units and tolerance, SHA-256 hashing, production aggregation, and identifier comparison. Keep tools pure when they transform explicit inputs. Use a service only when the code owns a provider, persistence, or lifecycle.
