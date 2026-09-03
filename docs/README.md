@@ -12,10 +12,12 @@
 | [Safety](safety.md) | Explain boundaries, permissions, prompt injection, and human control |
 | [Deployment](deployment.md) | Map local seams to a Microsoft production shape |
 | [Microsoft stack](MICROSOFT-STACK.md) | Map local seams to Azure/Microsoft services |
-| [Domain catalog](land-administration-catalog.md) | Inventory the land-administration pack |
+| [Domain catalog](land-administration-catalog.md) | Inventory the current generic `land-administration` pack |
 | [Domain authoring](domain-authoring.md) | Add or extend a domain |
 | [Implementation status](IMPLEMENTATION.md) | State what is local, tested, or cloud-dependent |
 | [Research](LAND-ADMIN-RESEARCH.md) | Explain the research behind the domain recipes |
+| [WV land architecture](WV_LAND_ARCHITECTURE.md) | Define the West Virginia oil-and-gas flagship architecture and source boundaries |
+| [WV land implementation plan](WV_LAND_IMPLEMENTATION_PLAN.md) | Track the phased implementation and verification plan |
 | [pstack prompts](prompts/README.md) | Reusable build/review prompts |
 
 ## Repository layers
@@ -32,3 +34,9 @@
 Seed records are fictional business inputs. `MockExecutor` is the deterministic
 fake model/agent. Foundry tests use a fake HTTP provider. None of those are
 production data or a live language model.
+
+The generic `land-administration` catalog and its flows describe the current
+repository layout. The [WV land architecture](WV_LAND_ARCHITECTURE.md) and
+[implementation plan](WV_LAND_IMPLEMENTATION_PLAN.md) describe the planned
+flagship migration. The `wv-land-well-reconciliation` workflow is not part of
+the current runtime until a later approved implementation phase.

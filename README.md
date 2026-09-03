@@ -1,10 +1,11 @@
 # Business Agent
 
-Business Agent is a TypeScript reference architecture for enterprise AI
-workflows. Business behavior lives in reviewable Markdown/YAML artifacts;
-TypeScript provides loading, orchestration, tools, evaluation, provenance,
-audit records, and provider boundaries. Land administration is the reference
-business domain.
+Business Agent is a reusable, jurisdiction-neutral TypeScript runtime for
+enterprise AI workflows. Business behavior lives in reviewable Markdown/YAML
+artifacts; TypeScript provides loading, orchestration, tools, evaluation,
+provenance, audit records, and provider boundaries. West Virginia oil-and-gas
+land is the current flagship application and domain demonstration built on that
+runtime.
 
 ## Start here
 
@@ -21,6 +22,10 @@ npm run cli -- domain list
 npm run cli -- flow list --domain land-administration
 ```
 
+The repository currently contains the generic `land-administration` domain and
+its demonstration flows. The planned `wv-land-well-reconciliation` workflow is
+the flagship direction; it is not implemented yet.
+
 Then run the complete example in the [quickstart](docs/quickstart.md).
 
 Then read [the documentation map](docs/README.md). The recommended order is:
@@ -31,6 +36,10 @@ Then read [the documentation map](docs/README.md). The recommended order is:
 4. [How evaluations work](docs/evaluations.md)
 5. [Safety and control model](docs/safety.md)
 6. [How to author a new domain](docs/domain-authoring.md)
+
+For the West Virginia flagship, read the [architecture specification](docs/WV_LAND_ARCHITECTURE.md)
+and [implementation plan](docs/WV_LAND_IMPLEMENTATION_PLAN.md) before changing
+the land domain or evidence model.
 
 ## Architecture
 
@@ -64,7 +73,8 @@ Implemented and tested locally:
 - prior-agent handoffs and explicit human-review transitions;
 - cohesive `RunService` and `FoundryClient` boundaries;
 - domain-aware listing, run, and inspect commands;
-- land-administration demonstration domain;
+- the current generic `land-administration` demonstration domain; the WV
+  flagship migration remains planned;
 - structured and adversarial evaluation cases;
 - local retrieval with provenance;
 - permissioned tools and MCP catalog seam;
