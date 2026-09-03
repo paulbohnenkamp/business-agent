@@ -117,9 +117,15 @@ Add a fixture-integrity test that recomputes SHA-256 and fails on a changed raw 
 
 ## Phase 3: Implement deterministic WV source adapters
 
+**Status: implemented and verified on 2026-09-03.** The source retrieval port,
+WVDEP and WVGES ArcGIS adapters, and the captured WVDEP 2025 annual workbook
+adapter are implemented under `src/domains/wv-land/adapters`. H6A is not yet
+implemented or validated. Tests use only the frozen Phase 2 snapshots and
+synthetic in-memory edge cases.
+
 ### Work
 
-Implement `WvdepWellSourceAdapter` for WVDEP ArcGIS layer 7, `WvgesWellSourceAdapter` for WVGES ArcGIS layer 4, and `WvdepProductionSourceAdapter` for the annual and H6A workbook formats. Keep transport in `RetrievalProvider`. Keep field mapping, source IDs, parsing, and normalization in each `SourceAdapter`.
+Implement `WvdepWellSourceAdapter` for WVDEP ArcGIS layer 7, `WvgesWellSourceAdapter` for WVGES ArcGIS layer 4, and `WvdepProductionSourceAdapter` for the captured WVDEP 2025 annual workbook format. Keep H6A deferred until an authentic fixture and parser contract exist. Keep transport in `RetrievalProvider`. Keep field mapping, source IDs, parsing, and normalization in each `SourceAdapter`.
 
 Add fixture-backed contract tests for API-keyed queries, pagination, GeoJSON and JSON parsing, geometry extraction, workbook headers, empty values, date fields, and reported source limits.
 

@@ -124,6 +124,8 @@ export interface Well {
     readonly datum?: string;
   };
   readonly wellNumber?: string;
+  /** Publisher-specific row label such as WVGES Original Location or Plugging. */
+  readonly sourceRecordType?: string;
   readonly farmOrLeaseName?: string;
   readonly leaseNumber?: string;
   readonly operator?: string;

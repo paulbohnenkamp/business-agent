@@ -131,9 +131,10 @@ describe("WV land Phase 2 fixtures", () => {
       assert.ok(raw, evidence.sourceRecordId);
       const facts = evidence.normalizedFacts;
       assert.equal(facts.apiNumber, String(raw.properties.api));
-      assert.equal(facts.permitId, `007-${String(raw.properties.permit).padStart(5, "0")}`);
+      assert.equal(facts.permitId, String(raw.properties.permit));
       assert.equal(facts.county, raw.properties.countyname);
       assert.equal(facts.operator, raw.properties.opernm);
+      assert.equal(facts.sourceRecordType, raw.properties.suffixtr);
       assert.equal(facts.status, raw.properties.statustr);
       assertCoordinateApproximately(facts.surfaceLocation.latitude, raw.properties.lat_dd);
       assertCoordinateApproximately(facts.surfaceLocation.longitude, raw.properties.lon_dd);

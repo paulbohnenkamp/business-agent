@@ -80,7 +80,7 @@ This is a separate geological and historical evidence source. It is useful for c
 
 ### WVDEP production workbooks
 
-WVDEP publishes annual oil-and-gas production workbooks from its [database information page](https://dep.wv.gov/oil-and-gas/databaseinfo/Pages/default.aspx). The page describes annual reporting and provides the workbook links. It also provides quarterly H6A horizontal-production files. The adapter downloads the selected workbook over HTTPS, stores the raw XLSX response, hashes it, parses it with a versioned parser, and emits normalized `ProductionRecord` values.
+WVDEP publishes annual oil-and-gas production workbooks from its [database information page](https://dep.wv.gov/oil-and-gas/databaseinfo/Pages/default.aspx). The page describes annual reporting and provides the workbook links. It also provides quarterly H6A horizontal-production files. Phase 3 supports only the captured 2025 annual workbook. The adapter retrieves the raw XLSX through the retrieval boundary, hashes it, parses its fixed XML layout with a versioned parser, and emits normalized `ProductionRecord` values. H6A is not implemented or validated and requires an authentic fixture before support is claimed.
 
 For example, the page currently links the 2025 workbook at `https://apps.dep.wv.gov/Documents/OOG/ProductionReports/2020-2029/2025Production.xlsx`. The adapter must treat the page as the discovery source and the workbook URL as the exact retrieval URL recorded in the snapshot. It must not assume that future year paths or filenames will remain unchanged.
 
@@ -193,6 +193,7 @@ type Well = {
 	county?: string;
 	surfaceLocation?: { latitude: number; longitude: number; datum?: string };
 	wellNumber?: string;
+	sourceRecordType?: string;
 	farmOrLeaseName?: string;
 	leaseNumber?: string;
 	operator?: string;
@@ -229,13 +230,18 @@ type ProductionRecord = {
 
 `SourceAdapter` owns a dataset's request construction, response parsing, field mapping, identifier rules, date rules, and normalized fact contract. It calls a `RetrievalProvider` and returns `SourceEvidence` or a typed retrieval or parse failure. An adapter must not own agent judgment, workflow routing, title interpretation, or human approval.
 
+In the current repository, the existing core `RetrievalProvider` is the
+document-search port. Phase 3 therefore adds a separate byte-oriented
+`SourceRetrievalProvider` under `src/retrieval`; it is the retrieval boundary
+used by source adapters and does not alter document search semantics.
+
 The first adapters are:
 
 | Adapter | Retrieval | Output |
 | --- | --- | --- |
 | `WvdepWellSourceAdapter` | WVDEP ArcGIS layer 7 query | `Well` evidence with regulatory fields and geometry |
 | `WvgesWellSourceAdapter` | WVGES ArcGIS layer 4 query | `Well` evidence with geological, lease-related, operator, and geometry fields |
-| `WvdepProductionSourceAdapter` | WVDEP annual or H6A XLSX download | `ProductionRecord` evidence |
+| `WvdepProductionSourceAdapter` | Captured WVDEP annual XLSX download | `ProductionRecord` evidence |
 
 The normalized model keeps source-specific fields in source evidence and maps only stable shared facts into `Well` and `ProductionRecord`. The adapters retain warnings for nulls, ambiguous dates, coordinate datum differences, workbook schema changes, and non-canonical identifiers.
 
