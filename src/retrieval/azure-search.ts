@@ -1,4 +1,4 @@
-import type { RetrievedDocument } from "./local";
+import type { RetrievedDocument } from "../core/ports";
 
 export interface AzureSearchOptions { endpoint: string; index: string; apiKey: string; fetcher?: typeof fetch; }
 

@@ -3,11 +3,9 @@ import { join, resolve } from "node:path";
 import type { AgentDefinition } from "./agents";
 import type { FlowDefinition } from "./flows";
 import { validateFlow } from "./flows";
-import { FileRunStore, type RunStore } from "./storage";
+import type { RunStore } from "./storage";
+import type { RunRecord, ReviewStatus, RunStatus } from "./run-record";
 import { validateAgentOutput, type AgentOutputEnvelope } from "./contracts";
-
-export type RunStatus = "running" | "complete" | "incomplete" | "failed";
-export type ReviewStatus = "not-required" | "pending-human-review" | "approved" | "rejected" | "revision-requested";
 
 export interface AgentExecutionResult {
   agentId: string;
@@ -15,26 +13,6 @@ export interface AgentExecutionResult {
   output: string;
   error?: string;
   structured?: AgentOutputEnvelope;
-}
-
-export interface RunRecord {
-  id: string;
-  domain: string;
-  flow: string;
-  flowVersion: string;
-  status: RunStatus;
-  startedAt: string;
-  completedAt?: string;
-  agents: Array<{ id: string; version: string }>;
-  outputs: string[];
-  errors: string[];
-  reviewStatus: ReviewStatus;
-  handoffs: Array<{ from: string; to: string; outputPath: string }>;
-  /** Generic references for structured domain run artifacts. */
-  caseId?: string;
-  structuredResultRef?: string;
-  sourceSnapshotIds?: string[];
-  reviewPacketRef?: string;
 }
 
 export interface AgentExecutor {
@@ -63,7 +41,7 @@ export interface RunOptions {
 }
 
 export class RunService {
-  constructor(private readonly defaultExecutor: AgentExecutor = new MockExecutor(), private readonly store: RunStore = new FileRunStore(), private readonly clock: () => Date = () => new Date()) {}
+  constructor(private readonly store: RunStore, private readonly defaultExecutor: AgentExecutor = new MockExecutor(), private readonly clock: () => Date = () => new Date()) {}
 
   async runFlow(options: RunOptions): Promise<RunRecord> {
   validateFlow(options.flow, options.agents);
@@ -116,10 +94,12 @@ export class RunService {
   }
 }
 
-export async function runFlow(options: RunOptions): Promise<RunRecord> {
-  return new RunService(options.executor).runFlow(options);
+export async function runFlow(options: RunOptions, store: RunStore): Promise<RunRecord> {
+  return new RunService(store, options.executor).runFlow(options);
 }
 
-export async function updateReviewStatus(root: string, runIdValue: string, status: Exclude<ReviewStatus, "not-required">): Promise<RunRecord> {
-  return new RunService().updateReviewStatus(root, runIdValue, status);
+export async function updateReviewStatus(root: string, runIdValue: string, status: Exclude<ReviewStatus, "not-required">, store: RunStore): Promise<RunRecord> {
+  return new RunService(store).updateReviewStatus(root, runIdValue, status);
 }
+
+export type { RunRecord, ReviewStatus, RunStatus } from "./run-record";

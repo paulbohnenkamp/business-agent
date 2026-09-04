@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { FileWvLandRunStore, WvLandRunService, validateWvFlowResult, type WvLandRunAggregate } from "../src/domains/wv-land";
-import type { RunRecord } from "../src/core/orchestrator";
+import type { RunRecord } from "../src/core/run-record";
 import type { RunStore } from "../src/core/storage";
 import type { Conflict, Finding, SourceSnapshot, Unknown, WvEvidence, WvFlowResult, SubmittedLandPackage } from "../src/domains/wv-land";
 

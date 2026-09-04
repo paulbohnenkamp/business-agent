@@ -6,8 +6,18 @@ import { describe, it } from "node:test";
 import { loadAgents } from "../src/core/agents";
 import { loadFlows, validateFlow } from "../src/core/flows";
 import { runFlow, RunService, updateReviewStatus } from "../src/core/orchestrator";
+import { FileRunStore } from "../src/storage/file-run-store";
 
 describe("domain-oriented agent architecture", () => {
+  it("keeps neutral runtime contracts independent of concrete infrastructure", async () => {
+    const ports = await readFile(join(process.cwd(), "src/core/ports.ts"), "utf8");
+    const orchestrator = await readFile(join(process.cwd(), "src/core/orchestrator.ts"), "utf8");
+    const storage = await readFile(join(process.cwd(), "src/core/storage.ts"), "utf8");
+    assert.doesNotMatch(ports, /retrieval\/local/);
+    assert.doesNotMatch(orchestrator, /FileRunStore/);
+    assert.doesNotMatch(storage, /from ["']\.\/orchestrator["']/);
+  });
+
   it("loads the canonical Phase 5 Markdown agents and flow", async () => {
     const root = join(process.cwd(), "domains", "land-administration");
     const agents = await loadAgents(root);
@@ -25,12 +35,13 @@ describe("domain-oriented agent architecture", () => {
     assert.ok(flow);
     const root = await mkdtemp(join(tmpdir(), "business-agent-run-"));
     try {
-      const record = await runFlow({ root, domain: "land-administration", flow, agents, context: "# Case\n\n- Case ID: demo-1\n- Parcel ID: P-1\n" });
+      const store = new FileRunStore();
+      const record = await runFlow({ root, domain: "land-administration", flow, agents, context: "# Case\n\n- Case ID: demo-1\n- Parcel ID: P-1\n" }, store);
       assert.equal(record.status, "complete");
       assert.equal(record.outputs.length, 4);
       assert.equal(record.reviewStatus, "pending-human-review");
       assert.equal(record.handoffs.length, 4);
-      const approved = await updateReviewStatus(root, record.id, "approved");
+      const approved = await updateReviewStatus(root, record.id, "approved", store);
       assert.equal(approved.reviewStatus, "approved");
       assert.match(await readFile(join(root, "runs", record.id, "run.json"), "utf8"), /"flow": "parcel-transfer-review"/);
       assert.match(await readFile(join(root, "runs", record.id, "agents", "intake-reviewer.md"), "utf8"), /Status: complete/);
@@ -53,10 +64,11 @@ describe("domain-oriented agent architecture", () => {
     const flows = await loadFlows(domainRoot);
     const root = await mkdtemp(join(tmpdir(), "business-agent-research-flows-"));
     try {
+      const store = new FileRunStore();
       for (const flowId of ["lease-lifecycle-review", "division-order-preparation", "assignment-transfer-review"]) {
         const flow = flows.get(flowId);
         assert.ok(flow);
-        const record = await new RunService().runFlow({ root, domain: "land-administration", flow, agents, context: `# ${flowId}\n\n- Seed case: LA-100\n` });
+        const record = await new RunService(store).runFlow({ root, domain: "land-administration", flow, agents, context: `# ${flowId}\n\n- Seed case: LA-100\n` });
         assert.equal(record.status, "complete");
         assert.equal(record.outputs.length, flow.agents.length);
         assert.equal(record.handoffs.length, flow.agents.length);
@@ -74,7 +86,7 @@ describe("domain-oriented agent architecture", () => {
     let attempts = 0;
     const root = await mkdtemp(join(tmpdir(), "business-agent-retry-"));
     try {
-      const record = await runFlow({ root, domain: "land-administration", flow, agents, maxAttempts: 2, context: "retry", executor: { async execute(agent) { attempts += 1; return attempts === 1 ? { agentId: agent.id, status: "failed", output: "", error: "transient" } : { agentId: agent.id, status: "complete", output: "ok" }; } } });
+      const record = await runFlow({ root, domain: "land-administration", flow, agents, maxAttempts: 2, context: "retry", executor: { async execute(agent) { attempts += 1; return attempts === 1 ? { agentId: agent.id, status: "failed", output: "", error: "transient" } : { agentId: agent.id, status: "complete", output: "ok" }; } } }, new FileRunStore());
       assert.equal(record.status, "complete");
       assert.equal(attempts, flow.agents.length + 1);
     } finally { await rm(root, { recursive: true, force: true }); }

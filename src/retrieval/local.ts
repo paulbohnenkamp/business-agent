@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import type { RetrievalProvider } from "../core/ports";
-
-export interface RetrievedDocument { id: string; text: string; score: number; provenance: { source: string; locator: string }[]; }
+import type { RetrievedDocument, RetrievalProvider } from "../core/ports";
 
 export function chunkText(text: string, maxCharacters = 1200): Array<{ text: string; locator: string }> {
   const paragraphs = text.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean);

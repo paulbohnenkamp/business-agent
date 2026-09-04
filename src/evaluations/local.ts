@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import type { AgentDefinition } from "../core/agents";
 import type { FlowDefinition } from "../core/flows";
 import { runFlow, type AgentExecutor, type RunRecord } from "../core/orchestrator";
+import { FileRunStore } from "../storage/file-run-store";
 
 export interface EvaluationEnvelope {
   route?: string;
@@ -59,7 +60,7 @@ export interface FlowEvaluationResult { id: string; runId: string; passed: boole
 export async function evaluateFlow(executor: AgentExecutor, flow: FlowDefinition, agents: Map<string, AgentDefinition>, root: string, cases: readonly FlowEvaluationCase[]): Promise<FlowEvaluationResult[]> {
   const results: FlowEvaluationResult[] = [];
   for (const testCase of cases) {
-    const run: RunRecord = await runFlow({ root, domain: "evaluation", flow, agents, context: testCase.input, executor });
+    const run: RunRecord = await runFlow({ root, domain: "evaluation", flow, agents, context: testCase.input, executor }, new FileRunStore());
     const finalOutput = run.outputs.length ? await readFile(run.outputs[run.outputs.length - 1]!, "utf8") : "";
     const result = gradeEvaluationOutput(testCase, { status: run.status === "complete" ? "complete" : "failed", output: finalOutput });
     const reviewOkay = !testCase.expectedReviewStatus || run.reviewStatus === testCase.expectedReviewStatus;

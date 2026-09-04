@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { loadActiveCatalog } from "../core/catalog";
 import { loadConfig } from "../core/config";
 import { runFlow } from "../core/orchestrator";
+import { FileRunStore } from "../storage/file-run-store";
 
 function usage(): string {
   return ["Usage:", "  npm run cli -- domain list", "  npm run cli -- agent list --domain <domain>", "  npm run cli -- flow list --domain <domain>", "  npm run cli -- run --domain <domain> --flow <flow> --context <path>", "  npm run cli -- run inspect <run-id>"].join("\n");
@@ -50,7 +51,7 @@ async function main(): Promise<void> {
     const agents = new Map(catalog.agents);
     const flow = catalog.flows.get(flowId);
     if (!flow) throw new Error(`Flow not found: ${flowId}`);
-    const record = await runFlow({ root: loadConfig().workspacePath, domain, flow, agents, context: await readFile(resolve(contextPath), "utf8") });
+    const record = await runFlow({ root: loadConfig().workspacePath, domain, flow, agents, context: await readFile(resolve(contextPath), "utf8") }, new FileRunStore());
     console.log(`Run ${record.id}: ${record.status}`);
     return;
   }

@@ -1,4 +1,9 @@
-import type { RetrievedDocument } from "../retrieval/local";
+export interface RetrievedDocument {
+  id: string;
+  text: string;
+  score: number;
+  provenance: { source: string; locator: string }[];
+}
 
 export interface RetrievalProvider {
   search(query: string, limit?: number): Promise<RetrievedDocument[]>;

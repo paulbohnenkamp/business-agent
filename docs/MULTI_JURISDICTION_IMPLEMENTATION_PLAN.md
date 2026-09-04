@@ -33,23 +33,30 @@ behavior is the compatibility baseline.
 
 ### 0. Correct neutral runtime contracts and composition roots
 
-**Status:** not started
+**Status:** implemented and locally verified on 2026-09-04; pending independent
+Step 0 review
 **Current dependency:** `src/core/ports.ts` imports `RetrievedDocument` from
 `src/retrieval/local.ts`; `src/core/orchestrator.ts` imports concrete
 `FileRunStore`; and `src/core/storage.ts` imports `RunRecord` from
 `orchestrator.ts`.
-**Move:** establish neutral retrieval document/result contracts, neutral run
-identity/run-record contracts where justified, and run-storage ports. Concrete
-HTTP/static retrieval providers and `FileRunStore` implement those contracts.
-**Destination:** neutral core ports/contracts; concrete providers remain under
-retrieval/storage infrastructure. Composition roots construct concrete
-providers and inject them. No DI framework is introduced.
+**Move:** establish `RetrievedDocument` in `src/core/ports.ts`, `RunRecord`,
+`RunStatus`, and `ReviewStatus` in `src/core/run-record.ts`, and `RunStore` in
+`src/core/storage.ts`. Move the concrete `FileRunStore` implementation to
+`src/storage/file-run-store.ts`; retrieval providers consume the neutral
+document contract.
+**Destination:** neutral core ports/contracts; concrete retrieval and file
+storage remain under retrieval/storage infrastructure. Composition callers
+construct `FileRunStore` and inject the `RunStore` into `RunService`/`runFlow`;
+no DI framework is introduced.
 **Compatibility:** preserve current `RetrievedDocument`, `RunRecord`,
 `FileRunStore`, CLI behavior, and persisted JSON while migrating imports and
-construction in one bounded step.
+construction in one bounded step. `orchestrator.ts` re-exports the canonical
+run types so existing type imports remain valid; this is a compatibility
+re-export, not a duplicate contract, and is retained until an intentional
+public API change removes it.
 **Proof:** baseline tests, retrieval/provider tests, run persistence tests, and
-an import test proving core does not import `retrieval/local` or concrete file
-stores.
+`tests/architecture.test.ts` checks proving core does not import
+`retrieval/local` or `FileRunStore`, and storage does not import orchestrator.
 **Architecture check:** concrete retrieval implements neutral contracts;
 generic orchestration depends on storage ports and does not instantiate a
 filesystem store.
