@@ -8,6 +8,18 @@ import { loadFlows, validateFlow } from "../src/core/flows";
 import { runFlow, RunService, updateReviewStatus } from "../src/core/orchestrator";
 import { FileRunStore } from "../src/storage/file-run-store";
 
+async function sourceFilesUnder(directory: string): Promise<readonly string[]> {
+  const { readdir } = await import("node:fs/promises");
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await sourceFilesUnder(path));
+    else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) files.push(path);
+  }
+  return files;
+}
+
 describe("domain-oriented agent architecture", () => {
   it("keeps neutral runtime contracts independent of concrete infrastructure", async () => {
     const ports = await readFile(join(process.cwd(), "src/core/ports.ts"), "utf8");
@@ -16,6 +28,30 @@ describe("domain-oriented agent architecture", () => {
     assert.doesNotMatch(ports, /retrieval\/local/);
     assert.doesNotMatch(orchestrator, /FileRunStore/);
     assert.doesNotMatch(storage, /from ["']\.\/orchestrator["']/);
+  });
+
+  it("keeps every core module independent of jurisdiction implementations", async () => {
+    const files = await sourceFilesUnder(join(process.cwd(), "src/core"));
+    const contents = await Promise.all(files.map(async (file) => ({ file, source: await readFile(file, "utf8") })));
+    for (const { file, source } of contents) {
+      assert.doesNotMatch(source, /domains\/wv-land|domains\/land-administration|wvdep|wvges|Wv[A-Z]|SourceIdentity|Finding|Conflict|Unknown/,
+        `${file} imports or names a jurisdiction-owned concept`);
+    }
+  });
+
+  it("keeps the reusable evaluation layer free of WV implementation edges", async () => {
+    const evaluationRoot = join(process.cwd(), "src/evaluations/core");
+    try {
+      const files = await sourceFilesUnder(evaluationRoot);
+      const contents = await Promise.all(files.map(async (file) => ({ file, source: await readFile(file, "utf8") })));
+      for (const { file, source } of contents) {
+        assert.doesNotMatch(source, /wv-land|WVDEP|WVGES|wvdep|wvges|publisher/i,
+          `${file} contains a WV or publisher dependency`);
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") assert.fail("Reusable evaluation layer has not been established");
+      throw error;
+    }
   });
 
   it("loads the canonical Phase 5 Markdown agents and flow", async () => {

@@ -1,6 +1,7 @@
 # Multi-jurisdiction implementation plan
 
-**Phase 7.5 status: design complete; implementation not started.**
+**Phase 7.5 status: implementation in progress; Step 0 committed on
+2026-09-04.**
 
 This is a living, behavior-preserving checklist for the architecture in
 [MULTI_JURISDICTION_ARCHITECTURE.md](MULTI_JURISDICTION_ARCHITECTURE.md). It
@@ -33,8 +34,7 @@ behavior is the compatibility baseline.
 
 ### 0. Correct neutral runtime contracts and composition roots
 
-**Status:** implemented and locally verified on 2026-09-04; pending independent
-Step 0 review
+**Status:** completed and committed as `046db76` on 2026-09-04
 **Current dependency:** `src/core/ports.ts` imports `RetrievedDocument` from
 `src/retrieval/local.ts`; `src/core/orchestrator.ts` imports concrete
 `FileRunStore`; and `src/core/storage.ts` imports `RunRecord` from
@@ -66,7 +66,7 @@ persisted artifacts.
 
 ### 1. Establish architecture import checks and a contract inventory
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** record the current import graph and identify forbidden edges before
 moving types. Add architecture tests only for dependency direction; do not
 change runtime behavior.
@@ -79,6 +79,14 @@ inventory in this plan.
 WV imports.
 **Risk:** low.
 **Rollback:** remove only the new architecture test.
+
+**Inventory:** neutral runtime contracts live in `src/core`; retrieval and
+storage implementations live below `src/retrieval` and `src/storage`;
+WV-specific contracts, flows, adapters, tools, and persistence remain under
+`src/domains/wv-land`; the evaluator currently composes WV fixtures and flow
+behavior from `src/evaluations/wv-land.ts`. The architecture tests enforce the
+first dependency direction and reserve `src/evaluations/core` for the next
+extraction step.
 
 ### 2. Extract generic evaluation mechanics
 

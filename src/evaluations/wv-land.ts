@@ -8,11 +8,12 @@ import type { Conflict, Finding, SourceSnapshot, Unknown, WvWellEvidence, WvProd
 import { WvdepWellSourceAdapter, WvgesWellSourceAdapter } from "../domains/wv-land";
 import { StaticSourceRetrievalProvider, type RetrievalSnapshot } from "../retrieval/source";
 import type { ProductionAggregationResult } from "../domains/wv-land/tools/production";
+import { check, diagnostic, gradeResult, type BehavioralExecutorDescriptor, type BehavioralMeasurement, type EvaluationCheck, type JsonValue } from "./core/contracts";
+import { loadJsonLines } from "./core/jsonl";
 
 export type WvExecutionKind = "deterministic-fixture" | "harness-validation" | "agent-behavior" | "flagship-flow-behavior";
 export type WvProperty = "fixture-integrity" | "parser" | "normalization" | "tool";
 export type WvRoute = "continue" | "request-records" | "human-review";
-export type JsonValue = string | number | boolean | null | JsonValue[] | { readonly [key: string]: JsonValue };
 
 export interface FixtureContext { readonly fixtureId: "braxton-4700701733"; readonly businessCaseId: "synthetic-wv-case-braxton-001"; readonly rawSources: readonly string[]; readonly normalizedEvidence: readonly string[]; }
 export interface FieldExpectation { readonly sourceRecordId: string; readonly rawPath: string; readonly normalizedPath: string; readonly expectedValue: JsonValue; readonly expectedRawValue?: JsonValue; readonly expectedUnit?: "MCF" | "barrels"; readonly normalizationRule?: string; }
@@ -31,14 +32,6 @@ export interface AgentBehaviorCase extends FixtureCaseBase { readonly executionK
 export interface FlagshipFlowBehaviorCase extends FixtureCaseBase { readonly executionKind: "flagship-flow-behavior"; readonly fixture: FixtureContext; readonly flowId: "wv-land-well-reconciliation"; readonly input: FixtureInput; readonly expected: StructuredExpectations; readonly executorRequirement: "genuine-external"; readonly observed?: never; }
 export type WvEvaluationCase = DeterministicFixtureCase | HarnessValidationCase | AgentBehaviorCase | FlagshipFlowBehaviorCase;
 
-export type CheckOutcome = "pass" | "fail" | "info";
-export interface EvaluationCheck { readonly id: string; readonly outcome: CheckOutcome; readonly hardGate: boolean; readonly detail?: string; }
-export type BehavioralMeasurement =
-  | { readonly status: "not-applicable" }
-  | { readonly status: "not-collected"; readonly reason: "no-genuine-executor" | "missing-authenticity-metadata" | "untrusted-executor-kind" }
-  | { readonly status: "collected"; readonly executorId: string; readonly executorVersion: string; readonly capability: "genuine-agent-execution" }
-  | { readonly status: "failed"; readonly executorId: string; readonly executorVersion: string; readonly reason: string };
-export interface BehavioralExecutorDescriptor { readonly executorId: string; readonly executorVersion: string; readonly capability: "genuine-agent-execution" | "predefined-replay" | "stub"; }
 export interface BehavioralExecutorBinding { readonly executor: WvAgentExecutor; readonly descriptor?: BehavioralExecutorDescriptor; }
 export interface WvEvaluationResult { readonly caseId: string; readonly executionKind: WvExecutionKind; readonly passed: boolean | null; readonly measurement: BehavioralMeasurement; readonly checks: readonly EvaluationCheck[]; readonly hardFailures: readonly string[]; readonly diagnosticScore?: number | null; }
 export interface WvEvaluationSummary { readonly total: number; readonly deterministicPassed: number; readonly deterministicFailed: number; readonly behavioralCollected: number; readonly behavioralNotCollected: number; readonly behavioralExecutionFailed: number; readonly behavioralPassed: number; readonly behavioralFailed: number; readonly results: readonly WvEvaluationResult[]; }
@@ -50,18 +43,7 @@ const KINDS = new Set<WvExecutionKind>(["deterministic-fixture", "harness-valida
 const PROPERTIES = new Set<WvProperty>(["fixture-integrity", "parser", "normalization", "tool"]);
 
 export async function loadWvEvaluationCases(path: string): Promise<readonly WvEvaluationCase[]> {
-  const cases: WvEvaluationCase[] = [];
-  const seen = new Set<string>();
-  const lines = (await readFile(path, "utf8")).split("\n").map((line) => line.trim()).filter(Boolean);
-  for (const [index, line] of lines.entries()) {
-    let value: unknown;
-    try { value = JSON.parse(line); } catch (error) { throw new Error(`Invalid WV evaluation JSON at line ${index + 1}: ${diagnostic(error)}`); }
-    const parsed = validateCase(value, index + 1);
-    if (seen.has(parsed.id)) throw new Error(`Duplicate WV evaluation case ID: ${parsed.id}`);
-    seen.add(parsed.id);
-    cases.push(parsed);
-  }
-  return cases;
+  return loadJsonLines(path, (value, line) => validateCase(value, line), "WV evaluation");
 }
 
 export interface WvFixtureBundle { readonly context: FixtureContext; readonly input: Record<string, unknown>; readonly snapshots: readonly SourceSnapshot[]; readonly evidence: readonly WvEvidence[]; readonly raw: ReadonlyMap<string, unknown>; readonly production: { readonly resultType: string; readonly records: readonly unknown[]; readonly apiNumberQueried: string }; }
@@ -178,10 +160,7 @@ export function gradeStructured(expected: StructuredExpectations, observed: unkn
   return checks;
 }
 
-function result(testCase: WvEvaluationCase, checks: readonly EvaluationCheck[], measurement: BehavioralMeasurement): WvEvaluationResult { const hardFailures = checks.filter((item) => item.hardGate && item.outcome === "fail").map((item) => item.id); const graded = checks.filter((item) => item.outcome !== "info"); const diagnosticScore = measurement.status === "not-collected" || measurement.status === "failed" || graded.length === 0 ? null : graded.filter((item) => item.outcome === "pass").length / graded.length; const passed = measurement.status === "not-collected" ? null : measurement.status === "failed" ? false : hardFailures.length === 0; return { caseId: testCase.fixture?.businessCaseId ?? BUSINESS_CASE_ID, executionKind: testCase.executionKind, passed, measurement, checks, hardFailures, diagnosticScore };
-}
-function check(id: string, passed: boolean, hardGate: boolean, detail: string): EvaluationCheck { return { id, outcome: passed ? "pass" : "fail", hardGate, detail }; }
-function diagnostic(error: unknown): string { return error instanceof Error ? error.message : String(error); }
+function result(testCase: WvEvaluationCase, checks: readonly EvaluationCheck[], measurement: BehavioralMeasurement): WvEvaluationResult { return gradeResult(testCase.fixture?.businessCaseId ?? BUSINESS_CASE_ID, testCase.executionKind, checks, measurement); }
 
 function validateCase(value: unknown, line: number): WvEvaluationCase {
   if (!record(value) || typeof value.id !== "string" || typeof value.version !== "string" || typeof value.executionKind !== "string" || !KINDS.has(value.executionKind as WvExecutionKind)) throw new Error(`Invalid WV evaluation case at line ${line}`);
