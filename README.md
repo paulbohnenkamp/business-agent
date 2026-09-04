@@ -43,7 +43,11 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), select **Run Land-Well
 Reconciliation**, and walk through the three agents, independent evidence,
-preserved operator conflict, production no-match, synthesis, and human review.
+preserved operator conflict, production no-match, synthesis, human review, and
+the **Ask Business Agent** panel. After a run, ask about the operator conflict,
+ask what evidence supports it, test the no-match-versus-zero distinction, and
+ask what remains unknown or who owns the mineral rights. The conversation is
+case-scoped and cites the same structured state shown in the workspace.
 The local executor produces validated structured artifacts deterministically so
 the demo is repeatable. It is an explicit provider seam, not a claim of live
 LLM execution. The later Azure milestone can replace that executor with the
@@ -55,7 +59,13 @@ default. Set `BUSINESS_AGENT_WORKSPACE` to use another directory. Azure hosting
 will need a web runtime, durable shared persistence instead of local files,
 model execution configuration and secrets, and fixture data packaged as an
 immutable application asset or stored in object storage. No live endpoint is
-required for this demo.
+required for this demo. The local conversation responder is deterministic too:
+it recognizes a bounded set of case questions and constructs answers from the
+persisted findings, conflicts, unknowns, evidence, provenance, synthesis, and
+production state. It is deliberately not presented as an LLM. A future
+Foundry-backed conversation port must receive a controlled case-state
+projection, return the same structured response shape, and pass evidence
+reference validation before an answer is displayed.
 
 Then run the complete example in the [quickstart](docs/quickstart.md).
 

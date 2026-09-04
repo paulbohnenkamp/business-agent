@@ -8,6 +8,8 @@ import { toLandProductionLookup, toLandWell } from "./projections";
 import type { ProductionAggregationResult } from "./tools/production";
 import { WvLandJsonCodec } from "./serialization";
 import { loadWvFixture } from "../../evaluations/wv-land";
+import { WvLocalConversation, type WvProductionState } from "./conversation";
+import type { CaseConversationResponse, CaseConversationTurn } from "../../core/case-conversation";
 
 export const DEMO_CASE_ID = "synthetic-wv-case-braxton-001";
 export const DEMO_FIXTURE_ID = "braxton-4700701733";
@@ -96,4 +98,10 @@ export async function getDemoReview(runId: string) {
 
 export async function decideDemoReview(runId: string, decision: "approved" | "rejected" | "revision-requested", reviewerId: string, reason: string) {
   return new FileWvLandRunStore(demoWorkspace()).recordReviewDecision(DEMO_CASE_ID, runId, { decisionId: `decision-${Date.now()}-${randomUUID().slice(0, 8)}`, reviewerId, decision, reason, decidedAt: new Date().toISOString() });
+}
+
+export async function askDemo(runId: string, question: string, history: readonly CaseConversationTurn[] = []): Promise<CaseConversationResponse> {
+  const [aggregate, caseData] = await Promise.all([getDemoRun(runId), loadDemoCase()]);
+  const production: WvProductionState = caseData.production;
+  return new WvLocalConversation().respond({ caseId: DEMO_CASE_ID, runId, state: { aggregate, production }, question, history });
 }
