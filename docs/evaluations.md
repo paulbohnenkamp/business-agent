@@ -39,6 +39,25 @@ The default mock executor is useful for testing the harness, not for claiming
 model quality. A real Foundry executor can use the same cases once credentials,
 model configuration, and an approved evaluation environment exist.
 
+The WV flagship has a separate typed suite:
+
+```sh
+npm run eval -- wv-land-well-reconciliation
+npm run eval -- wv-land-well-reconciliation list
+```
+
+It reports deterministic and harness results separately from individual-agent
+and flagship-flow behavioral measurements. Behavioral measurement requires an
+externally supplied executor binding that declares non-empty identity,
+version, and the `genuine-agent-execution` capability. Predefined, replay, or
+stub executors are rejected as behavioral measurements. Without a valid
+binding, behavioral cases are reported as `not-collected`; predefined outputs
+never count as agent-quality measurements. This capability is a software
+classification contract, not cryptographic attestation of a third-party
+executor. The suite uses frozen fixture bytes and synthetic submitted case
+material, so it does not require Azure credentials or live government
+endpoints.
+
 ## What to add for production
 
 Add human-reviewed golden outputs, structured JSON graders, latency/cost

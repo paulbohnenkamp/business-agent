@@ -366,6 +366,15 @@ Run records, storage, API, and human-review tests. Inspect persisted JSON or dat
 
 ## Phase 7: Add fixture-backed evaluations
 
+**Status: implemented and verified on 2026-09-04.** The WV evaluation path
+loads the immutable Phase 2 fixture, exercises the Phase 3 adapters and Phase
+4 typed expectations, validates structured Phase 5 artifacts, and evaluates
+the typed flagship flow through the existing provider-neutral executor seam.
+Local deterministic and harness checks run without credentials; behavioral
+measurement additionally requires an explicit external executor capability
+descriptor, so the local environment reports behavioral measurements as not
+collected rather than inferring them from predefined outputs.
+
 ### Work
 
 Build a behavioral evaluation harness around the validated structured Phase 5 execution model. Add separate fixture-backed evaluations for raw parsing, normalization, agent judgment, flow routing, adversarial inputs, cross-case leakage, and unauthorized actions. Build cases from checked-in WV snapshots and synthetic inputs. Include expected findings, required evidence, preserved conflicts, required unknowns, expected route, and prohibited claims. Do not use brittle exact prose comparisons.
@@ -390,6 +399,20 @@ npm run eval -- wv-land-well-reconciliation
 ```
 
 Record the case count and pass or fail result in the implementation result record. If the evaluator has a list command, use it to verify that the WV suite is discovered.
+
+### Verification record
+
+- `node --version`: v24.14.1
+- `npm run typecheck`: passed
+- targeted `tests/wv-land-evaluations.test.ts`: passed, 15 tests
+- `npm test`: passed, 109 tests
+- `npm run build`: passed; existing Next.js tracing warning only
+- `npx tsx scripts/run-evals.ts wv-land-well-reconciliation`: passed; 14 cases,
+  7 deterministic/harness passes, 0 deterministic/harness failures, and 7
+  behavioral cases not collected because no genuine executor was supplied
+- frozen fixture/hash verification: passed
+- `git diff --check`: passed
+- no evaluation or deterministic test required a live WV government endpoint
 
 ## Phase 8: Build the case-centered UI
 
