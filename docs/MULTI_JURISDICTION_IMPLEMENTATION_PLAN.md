@@ -89,7 +89,7 @@ extraction step.
 
 ### 2. Extract generic evaluation mechanics
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** execution-kind model, measurement states, executor descriptor and
 binding authenticity, check result, hard-gate calculation, scores, summaries,
 and generic JSONL loading from `src/evaluations/wv-land.ts`.
@@ -103,6 +103,11 @@ and new core unit/contract tests with no WV strings.
 or publisher IDs.
 **Risk:** medium because the current evaluator is densely coupled.
 **Rollback:** revert the extraction while retaining the unchanged WV suite.
+
+**Implementation note:** the shared execution-kind, measurement, check,
+hard-gate, score, diagnostic, and JSONL mechanics are in
+`src/evaluations/core`; WV fixture parsing and land-specific grading remain in
+the WV suite composition.
 
 ### 3. Extract shared evidence, judgment, and JSON boundary contracts
 
