@@ -1,9 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import type { AgentDefinition } from "./agents";
 import type { FlowDefinition } from "./flows";
 import { validateFlow } from "./flows";
-import type { RunStore } from "./storage";
+import type { RunArtifactStore, RunStore } from "./storage";
 import type { RunRecord, ReviewStatus, RunStatus } from "./run-record";
 import { validateAgentOutput, type AgentOutputEnvelope } from "./contracts";
 
@@ -41,16 +39,14 @@ export interface RunOptions {
 }
 
 export class RunService {
-  constructor(private readonly store: RunStore, private readonly defaultExecutor: AgentExecutor = new MockExecutor(), private readonly clock: () => Date = () => new Date()) {}
+  constructor(private readonly store: RunArtifactStore, private readonly defaultExecutor: AgentExecutor = new MockExecutor(), private readonly clock: () => Date = () => new Date()) {}
 
   async runFlow(options: RunOptions): Promise<RunRecord> {
   validateFlow(options.flow, options.agents);
   const id = runId(this.clock());
-  const directory = join(resolve(options.root), "runs", id);
   const startedAt = this.clock().toISOString();
   const record: RunRecord = { id, domain: options.domain, flow: options.flow.id, flowVersion: options.flow.version, status: "running", startedAt, agents: options.flow.agents.map((agentId) => ({ id: agentId, version: options.agents.get(agentId)?.version ?? "unknown" })), outputs: [], errors: [], reviewStatus: "pending-human-review", handoffs: [] };
-  await mkdir(join(directory, "agents"), { recursive: true });
-  await writeFile(join(directory, "input.md"), options.context, "utf8");
+  await this.store.saveInput(options.root, id, options.context);
   const executor = options.executor ?? this.defaultExecutor;
   let workingContext = options.context;
   let previousAgent = "input";
@@ -63,8 +59,7 @@ export class RunService {
       result = await executor.execute(agent, workingContext, options.inputs ?? {});
       if (result.status === "complete" || attempt === attempts) break;
     }
-    const outputPath = join(directory, "agents", `${agent.id}.md`);
-    await writeFile(outputPath, result.output, "utf8");
+    const outputPath = await this.store.saveAgentOutput(options.root, id, agent.id, result.output);
     if (result.structured) {
       try { validateAgentOutput(result.structured); }
       catch (error) { result = { agentId: agent.id, status: "failed", output: result.output, error: error instanceof Error ? error.message : String(error) }; }
@@ -94,12 +89,16 @@ export class RunService {
   }
 }
 
-export async function runFlow(options: RunOptions, store: RunStore): Promise<RunRecord> {
+export async function runFlow(options: RunOptions, store: RunArtifactStore): Promise<RunRecord> {
   return new RunService(store, options.executor).runFlow(options);
 }
 
 export async function updateReviewStatus(root: string, runIdValue: string, status: Exclude<ReviewStatus, "not-required">, store: RunStore): Promise<RunRecord> {
-  return new RunService(store).updateReviewStatus(root, runIdValue, status);
+  const record = await store.get(runIdValue, root);
+  if (record.reviewStatus !== "pending-human-review") throw new Error(`Run ${runIdValue} is not awaiting human review`);
+  record.reviewStatus = status;
+  await store.save(record, root);
+  return record;
 }
 
 export type { RunRecord, ReviewStatus, RunStatus } from "./run-record";

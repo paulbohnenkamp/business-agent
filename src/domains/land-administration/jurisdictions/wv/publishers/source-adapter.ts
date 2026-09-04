@@ -1,4 +1,4 @@
-import type { SourceEvidence } from "../contracts";
+import type { SourceEvidence } from "../../../../../evidence/contracts";
 
 export interface SourceAdapterQuery {
   readonly apiNumber?: string;

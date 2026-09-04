@@ -2,8 +2,8 @@ import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { promisify } from "node:util";
-import type { ProductionRecord, SourceSnapshot, WvProductionEvidence } from "../contracts";
-import type { RetrievalSnapshot, SourceRetrievalProvider } from "../../../retrieval/source";
+import type { ProductionRecord, SourceSnapshot, WvProductionEvidence } from "../../../../wv-land/contracts";
+import type { RetrievalSnapshot, SourceRetrievalProvider } from "../../../../../retrieval/source";
 import { SourceAdapterError, type SourceAdapter, type SourceAdapterQuery } from "./source-adapter";
 
 const execFileAsync = promisify(execFile);

@@ -1,6 +1,6 @@
 # Multi-jurisdiction architecture
 
-**Phase 7.5 design decision — documentation only**
+**Phase 7.5 migration baseline — implemented and verified**
 
 This document is the authority for the boundary between the reusable Business
 Agent runtime, shared evidence and review mechanics, shared land
@@ -48,10 +48,9 @@ the current code and the three jurisdictions.
 The design started from committed `HEAD` `b57c44f8d7486a4320b7a0f720e83e4e009220eb`
 (`feat: add offline WV land behavioral evaluation framework`). The working
 tree was clean before this phase. The installed Node runtime remains the
-compatibility baseline; no production code, tests, fixtures, or dependencies
-are changed by Phase 7.5.
+compatibility baseline; frozen fixtures and dependency versions are unchanged.
 
-The current implementation has these relevant facts:
+The completed implementation has these relevant facts:
 
 - `src/core/typed-flow.ts` is topology-neutral ordered-step execution with
   input/output validation, immutable artifact crossing, and fail-closed
@@ -59,17 +58,17 @@ The current implementation has these relevant facts:
 - `src/core/orchestrator.ts` contains generic agent execution and run records,
   but also owns the current generic review status and a simple file store
   relationship.
-- The current core dependency direction is not yet fully neutral: `src/core/ports.ts`
-  imports `RetrievedDocument` from `src/retrieval/local.ts`; `src/core/orchestrator.ts`
-  imports concrete `FileRunStore`; and `src/core/storage.ts` imports `RunRecord`
-  from `orchestrator.ts`. These are migration findings, not target design.
+- Core runtime contracts are neutral and concrete storage is injected through
+  `RunStore`/`RunArtifactStore`; `orchestrator.ts` retains only the intentional
+  public compatibility re-export of run types.
 - `src/domains/wv-land/contracts.ts` contains source identity/snapshot/evidence,
   provenance, findings, conflicts, unknowns, `Well`, `ProductionRecord`, and
   WV aliases for evidence.
 - `src/domains/wv-land/flow.ts` contains WV flow input/output, agent execution
   requests, validation, and the three-step flow.
-- `src/domains/wv-land/adapters/` contains source ports, ArcGIS behavior, WVDEP
-  and WVGES field maps, and the WVDEP workbook parser.
+- `src/domains/land-administration/jurisdictions/wv/publishers/` contains the
+  WV source port, ArcGIS behavior, WVDEP and WVGES field maps, and the WVDEP
+  workbook parser; `wv-land/index.ts` is a documented legacy façade.
 - `src/domains/wv-land/persistence.ts` combines durable aggregate validation,
   atomic publication/recovery, review packet/decision history, and WV land
   state.
@@ -292,8 +291,8 @@ jurisdiction semantics.
 | `SourceSnapshot` | same | B | No, responsibility is generic | Exact-byte retrieval metadata and immutability are cross-domain. | `src/evidence/contracts.ts`, `SourceSnapshot` | Yes |
 | `SourceEvidence<TFacts>` | same | B | Partly | The envelope is reusable; normalized facts are not. | Shared generic `SourceEvidence<TFacts>`; land aliases in land layer | Yes |
 | `Finding` | same | B | No, mostly generic | Evidence links, status, provenance, and case identity are reusable; legal meaning is supplied by the consumer. | `src/evidence/judgment.ts`, `Finding` | Yes |
-| `Conflict` | same | B | No | Competing evidence claims are reusable only after an explicit case/run scoping invariant is chosen. | shared judgment contracts after scoping invariant | **DEFER UNTIL SCOPING INVARIANT IS IMPLEMENTED** |
-| `Unknown` | same | B | No | Explicit unanswered questions are reusable only after an explicit case/run scoping invariant is chosen. | shared judgment contracts after scoping invariant | **DEFER UNTIL SCOPING INVARIANT IS IMPLEMENTED** |
+| `Conflict` | same | B | No | Competing evidence claims are reusable as aggregate-scoped children; case/run scope is inherited from the containing aggregate. | `src/evidence/judgment.ts`, aggregate-scoped `Conflict` | Yes |
+| `Unknown` | same | B | No | Explicit unanswered questions are reusable as aggregate-scoped children; case/run scope is inherited from the containing aggregate. | `src/evidence/judgment.ts`, aggregate-scoped `Unknown` | Yes |
 | provenance types | same | B | No | Run/step/input/source/producer lineage is generic; source IDs should remain opaque. | `Provenance` in shared evidence/judgment | Yes |
 | `Well` | same | C | No | The current concrete record is WV-biased: API-only identity, WV lease/farm labels, no role-aware coordinate/CRS, and raw status strings. | `LandWell`: minimal shared workflow projection plus publisher evidence/extensions | **EXTRACT NOW** |
 | `ProductionRecord` | same | C | No | Current fields encode WV commodity columns and year/month assumptions; OH production metadata is not yet characterized. | `LandProductionRecord`: minimal shared observation projection; WV schema remains publisher-specific | **EXTRACT NOW** |
@@ -329,8 +328,8 @@ future domains use ArcGIS or XLSX. A source identity describes a publisher and
 dataset; a snapshot describes one exact retrieval; evidence links one
 publisher record to its snapshot and normalized facts.
 
-`Finding`, `Conflict`, `Unknown`, and `Provenance` are also reusable only with
-an explicit scope invariant. The selected design is **aggregate-scoped
+`Finding`, `Conflict`, `Unknown`, and `Provenance` are reusable with an
+explicit scope invariant. The selected design is **aggregate-scoped
 children**: a `Conflict` or `Unknown` is not standalone durable state and may
 be transported or persisted only inside a containing case/run aggregate that
 supplies its case and run identity. `Finding` already carries case identity;
@@ -340,9 +339,8 @@ The shared validation rule is: every evidence reference resolves to evidence
 available to the containing aggregate; no child may be attached to another
 case/run; and standalone persistence of an unscoped conflict or unknown is
 rejected. The land aggregate validator currently enforces the relationship
-checks around findings and evidence; the migration must extend that validation
-to the selected child-scope invariant before extracting `Conflict` or
-`Unknown`. Until then they remain WV/land-local. These contracts must not
+checks around findings, evidence, and the scoped judgment container. These
+contracts must not
 contain title, mineral, lease, parcel, API, permit, operator, or state-specific
 semantics.
 
@@ -497,11 +495,11 @@ deterministic services own identifier normalization, parsing, coordinate/date
 handling, hashing, and arithmetic; source adapters own acquisition/mapping;
 agents own bounded judgment.
 
-`case-synthesizer` currently contains stale ownership/compliance language in
-its presentation requirements. A later documentation/configuration cleanup
-should make output expectations land-well-reconciliation-neutral while keeping
-the agent's evidence and human-review boundary. Agent/flow files are not
-modified in Phase 7.5.
+`case-synthesizer` retains presentation wording that can be refined in a later
+prompt-polish pass, but runtime ownership is now neutral: the WV flow adapts
+its payload at the generic execution boundary, while policy remains in WV
+composition. No live acquisition or later-jurisdiction implementation is part
+of this migration.
 
 ## Source architecture
 
@@ -586,7 +584,8 @@ checks remain separate from behavioral measurement.
 
 ## Persistence and review architecture
 
-Phase 6 currently combines these concerns in `FileWvLandRunStore`:
+The historical Phase 6 implementation combined these concerns in
+`FileWvLandRunStore`; the completed migration now separates them:
 
 - generic file paths, JSON-safe canonical serialization, atomic write-once
   publication, and recovery;
@@ -657,7 +656,7 @@ src/
         wv/
           flow.ts
           policy.ts
-          adapters/
+          publishers/
             wvdep.ts
             wvges.ts
             production.ts

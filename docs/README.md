@@ -37,8 +37,8 @@ Seed records are fictional business inputs. `MockExecutor` is the deterministic
 fake model/agent. Foundry tests use a fake HTTP provider. None of those are
 production data or a live language model.
 
-The active `land-administration` catalog now exposes the Phase 5
+The active `land-administration` catalog exposes the
 `wv-land-well-reconciliation` workflow and its three canonical agents. The
-source adapters and deterministic tools are implemented offline; durable
-findings, behavioral evaluations, and live provider integration remain later
-phases.
+source adapters, deterministic tools, durable findings, behavioral evaluations,
+and review lifecycle are implemented offline. Live provider integration and
+additional jurisdictions remain deferred.

@@ -7,32 +7,10 @@
  * not a title determination.
  */
 
+import type { Conflict, ConflictStatus, Unknown } from "../../evidence/judgment";
+export type { Conflict, ConflictStatus, Unknown } from "../../evidence/judgment";
 import type { Finding, FindingConfidence, FindingStatus, Provenance, SourceEvidence, SourceIdentity, SourceMechanism, SourceSnapshot } from "../../evidence/contracts";
 export type { Finding, FindingConfidence, FindingStatus, Provenance, SourceEvidence, SourceIdentity, SourceMechanism, SourceSnapshot } from "../../evidence/contracts";
-export type ConflictStatus = "unresolved" | "resolved-by-review";
-
-/** Preserves competing claims instead of silently selecting one source. */
-export interface Conflict {
-  readonly conflictId: string;
-  readonly subject: string;
-  readonly claims: readonly {
-    readonly value: unknown;
-    readonly evidenceIds: readonly string[];
-  }[];
-  readonly reason: string;
-  readonly status: ConflictStatus;
-  readonly createdAt: string;
-}
-
-/** Records a question the available evidence cannot answer without inventing a fact. */
-export interface Unknown {
-  readonly unknownId: string;
-  readonly subject: string;
-  readonly question: string;
-  readonly reason: string;
-  readonly neededEvidence?: readonly string[];
-  readonly createdAt: string;
-}
 
 /** Normalized well facts; public well evidence is not proof of mineral title. */
 export interface Well {

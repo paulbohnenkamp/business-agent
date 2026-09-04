@@ -1,4 +1,4 @@
-import { link, mkdir, rm, unlink, writeFile } from "node:fs/promises";
+import { link, mkdir, open, rename, rm, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -6,9 +6,30 @@ import { randomUUID } from "node:crypto";
 export async function writeNewAtomic(path: string, content: string): Promise<void> {
   const temporary = `${path}.${randomUUID()}.tmp`;
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(temporary, content, "utf8");
-  try { await link(temporary, path); await unlink(temporary); }
+  await durableWrite(temporary, content);
+  try { await link(temporary, path); await unlink(temporary); await syncDirectory(path); }
   catch (error) { await rm(temporary, { force: true }); throw error; }
+}
+
+/** Replace a mutable record only after the complete new value is durable. */
+export async function writeAtomic(path: string, content: string): Promise<void> {
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  await mkdir(dirname(path), { recursive: true });
+  await durableWrite(temporary, content);
+  try { await rename(temporary, path); await syncDirectory(path); }
+  catch (error) { await rm(temporary, { force: true }); throw error; }
+}
+
+async function durableWrite(path: string, content: string): Promise<void> {
+  const handle = await open(path, "wx", 0o600);
+  try { await handle.writeFile(content, "utf8"); await handle.sync(); }
+  finally { await handle.close(); }
+  await syncDirectory(path);
+}
+
+async function syncDirectory(path: string): Promise<void> {
+  const directory = await open(dirname(path), "r");
+  try { await directory.sync(); } finally { await directory.close(); }
 }
 
 export function encodeCanonicalJson(value: unknown): string {

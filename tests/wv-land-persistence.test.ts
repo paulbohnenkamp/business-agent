@@ -43,8 +43,22 @@ describe("WV land Phase 6 persistence", () => {
       assert.deepEqual(loaded.result.conflicts[0], conflict);
       assert.deepEqual(loaded.result.unknowns[0], unknown);
       assert.deepEqual(loaded.snapshotIds, [snapshot.snapshotId]);
+      assert.deepEqual(loaded.judgments.scope, { caseId, runId: saved.runId });
       assert.equal(loaded.result.synthesis?.proposedRoute, "human-review");
       assert.equal((await store.getReviewPacket(caseId, saved.runId)).state, "pending-human-review");
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
+
+  it("inherits judgment scope from the aggregate and rejects cross-run scope", async () => {
+    const root = await tempRoot();
+    try {
+      const store = new FileWvLandRunStore(root);
+      const saved = await store.saveRun({ ...options, runId: "run-scoped", submittedPackage, sourceSnapshots: [snapshot], sourceEvidence: [evidence], result: result("run-scoped") });
+      const path = join(root, "cases", caseId, "runs", saved.runId, "aggregate.json");
+      const tampered = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+      tampered.judgments = { ...(tampered.judgments as Record<string, unknown>), scope: { caseId, runId: "other-run" } };
+      await writeFile(path, `${JSON.stringify(tampered, null, 2)}\n`, "utf8");
+      await assert.rejects(() => store.getRun(caseId, saved.runId), /Invalid persisted WV land aggregate envelope/);
     } finally { await rm(root, { recursive: true, force: true }); }
   });
 

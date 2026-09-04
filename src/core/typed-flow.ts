@@ -1,8 +1,7 @@
-/** A provider-neutral result returned by one ordered execution step. */
-export type StepExecution<T> =
-  | { readonly status: "succeeded"; readonly artifact: T }
-  | { readonly status: "failed"; readonly kind: "execution" | "validation"; readonly error: string };
+import type { AgentExecutionPort, StepExecution } from "./agent-execution";
+export type { StepExecution } from "./agent-execution";
 
+/** A provider-neutral result returned by one ordered execution step. */
 /** A validated, transient record of one step and its produced artifact. */
 export type StepRecord =
   | { readonly status: "succeeded"; readonly stepId: string; readonly artifact: unknown }
@@ -11,7 +10,7 @@ export type StepRecord =
 export interface TypedStep {
   readonly id: string;
   readonly required: boolean;
-  readonly execute: (input: unknown) => Promise<StepExecution<unknown>>;
+  readonly execute: (input: unknown, execution?: AgentExecutionPort) => Promise<StepExecution<unknown>>;
 }
 
 export interface TypedStepSpec<I, O> {
@@ -19,7 +18,7 @@ export interface TypedStepSpec<I, O> {
   readonly required: boolean;
   readonly validateInput: (value: unknown) => value is I;
   readonly validateOutput: (value: unknown) => value is O;
-  readonly execute: (input: I) => Promise<StepExecution<O>>;
+  readonly execute: (input: I, execution?: AgentExecutionPort) => Promise<StepExecution<O>>;
 }
 
 export interface OrderedFlowExecution {
@@ -38,11 +37,11 @@ export function typedStep<I, O>(spec: TypedStepSpec<I, O>): TypedStep {
   return {
     id: spec.id,
     required: spec.required,
-    async execute(input: unknown): Promise<StepExecution<unknown>> {
+    async execute(input: unknown, execution?: AgentExecutionPort): Promise<StepExecution<unknown>> {
       let typedInput: I;
       try { if (!spec.validateInput(input)) return { status: "failed", kind: "validation", error: `Invalid input for step ${spec.id}` }; typedInput = input; } catch (error) { return { status: "failed", kind: "validation", error: `Input validation for ${spec.id} threw: ${diagnostic(error)}` }; }
       let result: StepExecution<O>;
-      try { result = await spec.execute(typedInput); } catch (error) { return { status: "failed", kind: "execution", error: `Step ${spec.id} execution threw: ${diagnostic(error)}` }; }
+      try { result = await spec.execute(typedInput, execution); } catch (error) { return { status: "failed", kind: "execution", error: `Step ${spec.id} execution threw: ${diagnostic(error)}` }; }
       if (result.status === "failed") return result;
       let validOutput: boolean;
       try { validOutput = spec.validateOutput(result.artifact); } catch (error) { return { status: "failed", kind: "validation", error: `Output validation for ${spec.id} threw: ${diagnostic(error)}` }; }
@@ -53,12 +52,12 @@ export function typedStep<I, O>(spec: TypedStepSpec<I, O>): TypedStep {
 }
 
 /** Execute an explicitly ordered collection of required or optional steps. */
-export async function executeOrderedSteps(input: unknown, steps: readonly TypedStep[]): Promise<OrderedFlowExecution> {
+export async function executeOrderedSteps(input: unknown, steps: readonly TypedStep[], execution?: AgentExecutionPort): Promise<OrderedFlowExecution> {
   const records: StepRecord[] = [];
   const artifacts: unknown[] = [];
   let current = input;
   for (const step of steps) {
-    const result = await step.execute(current);
+    const result = await step.execute(current, execution);
     if (result.status === "failed") {
       records.push({ status: "failed", stepId: step.id, kind: result.kind, error: result.error });
       for (const blocked of steps.slice(records.length)) records.push({ status: "blocked", stepId: blocked.id, kind: "execution", error: `Blocked by failed step ${step.id}` });

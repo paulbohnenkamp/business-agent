@@ -1,5 +1,5 @@
-import type { SourceSnapshot, Well, WvWellEvidence } from "../contracts";
-import type { RetrievalSnapshot, SourceRetrievalProvider } from "../../../retrieval/source";
+import type { SourceSnapshot, Well, WvWellEvidence } from "../../../../wv-land/contracts";
+import type { RetrievalSnapshot, SourceRetrievalProvider } from "../../../../../retrieval/source";
 import { SourceAdapterError, type SourceAdapter, type SourceAdapterQuery } from "./source-adapter";
 
 type Feature = { readonly id?: unknown; readonly properties?: unknown; readonly geometry?: unknown };

@@ -29,7 +29,7 @@ The flow ID is `wv-land-well-reconciliation`.
 ### Execution
 
 1. `land-case-intake` identifies the case scope, normalizes supplied identifiers, records the submitted facts, and lists evidence queries and missing inputs.
-2. Deterministic source services acquire or load WVDEP well, WVGES well, and relevant WVDEP production records before the judgment steps. They save or reference immutable raw snapshots and provide normalized evidence plus deterministic tool results in the execution context. Phase 5 uses frozen fixture-backed context; live-source orchestration is later work.
+2. Deterministic source services acquire or load WVDEP well, WVGES well, and relevant WVDEP production records before the judgment steps. They save or reference immutable raw snapshots and provide normalized evidence plus deterministic tool results in the execution context. The local workflow uses frozen fixture-backed context; live-source orchestration remains an opt-in later phase.
 3. `land-well-reconciler` compares the submitted package with the independent public evidence. It produces transient structured findings about well identity, operator, farm or lease names, lease numbers, location, formation, status, completion, and production. It preserves conflicts and does not certify title.
 4. `case-synthesizer` consolidates the transient structured findings, evidence, conflicts, unknowns, and execution failures. It proposes one next route and explains what a human must decide.
 5. The structured result is available for the Phase 6 human-review lifecycle,
@@ -72,8 +72,9 @@ required steps. The seam validates inputs and outputs, records explicit step
 success or failure, propagates required-step failures, and prevents successful
 synthesis when required upstream execution or evidence acquisition failed. It
 does not add general DAG scheduling, arbitrary expressions, distributed
-orchestration, durable storage, or parallelism. Phase 6 later persists the
-validated results and integrates human-review lifecycle state.
+orchestration, durable storage, or parallelism. Phase 6 persists the validated
+results and integrates human-review lifecycle state; Phase 7 evaluates the
+same structured boundary offline.
 
 Execution failure and business uncertainty are different states. An execution
 or source failure means a required step or evidence acquisition could not be

@@ -5,9 +5,10 @@ import type { RunStore } from "../../core/storage";
 import { FileRunStore } from "../../storage/file-run-store";
 import { WvLandJsonCodec } from "./serialization";
 import { validateWvFlowResult, type SubmittedLandPackage, type WvEvidence, type WvFlowResult } from "./flow";
-import type { SourceSnapshot } from "./contracts";
+import type { Conflict, SourceSnapshot, Unknown } from "./contracts";
 import { deepFreeze, encodeCanonicalJson, writeNewAtomic } from "../../storage/file-primitives";
-import { reviewState } from "../../review/lifecycle";
+import { reviewState, validateRevisionLineage } from "../../review/lifecycle";
+import { createScopedJudgments, validateScopedJudgments, type ScopedJudgments } from "../../evidence/judgment";
 
 export type ReviewState = "pending-human-review" | "approved" | "rejected" | "revision-requested";
 export type ReviewDecisionKind = Exclude<ReviewState, "pending-human-review">;
@@ -55,6 +56,7 @@ export interface WvLandRunAggregate {
   readonly sourceSnapshots: readonly SourceSnapshot[];
   readonly sourceEvidence: readonly WvEvidence[];
   readonly result: WvFlowResult;
+  readonly judgments: ScopedJudgments<Conflict, Unknown>;
   readonly snapshotIds: readonly string[];
   readonly evidenceIds: readonly string[];
   readonly revisionOfRunId?: string;
@@ -123,6 +125,7 @@ export class FileWvLandRunStore implements WvLandRunStore {
       sourceSnapshots: input.sourceSnapshots,
       sourceEvidence: input.sourceEvidence,
       result: input.result,
+      judgments: createScopedJudgments({ caseId: input.submittedPackage.caseId, runId: input.runId }, input.result.conflicts, input.result.unknowns),
       snapshotIds,
       evidenceIds,
       ...(input.revisionOfRunId === undefined ? {} : { revisionOfRunId: input.revisionOfRunId }),
@@ -132,9 +135,10 @@ export class FileWvLandRunStore implements WvLandRunStore {
     if (input.revisionOfRunId !== undefined) {
       const prior = await this.getRun(aggregate.caseId, input.revisionOfRunId);
       const priorReview = await this.getReviewPacket(aggregate.caseId, input.revisionOfRunId);
-      if (prior.reviewPacketId === undefined || input.revisionOfPacketId !== prior.reviewPacketId || priorReview.state !== "revision-requested") throw new Error("Revision lineage requires the prior packet's revision request");
-    } else if (input.revisionOfPacketId !== undefined) {
-      throw new Error("Revision packet reference requires a prior run");
+      if (prior.reviewPacketId === undefined) throw new Error("Revision lineage requires the prior packet's revision request");
+      validateRevisionLineage(input, { packetId: prior.reviewPacketId, state: priorReview.state });
+    } else {
+      validateRevisionLineage(input, { packetId: "", state: "pending-human-review" });
     }
     const runDirectory = this.runDirectory(aggregate.caseId, aggregate.runId);
     await mkdir(join(runDirectory, "review-decisions"), { recursive: true });
@@ -309,6 +313,7 @@ function validateAggregateInput(value: unknown): asserts value is {
   readonly reviewPacketId?: string;
   readonly caseId?: string;
   readonly runId?: string;
+  readonly judgments?: ScopedJudgments<Conflict, Unknown>;
 } {
   if (!isRecord(value) || !isSubmittedPackage(value.submittedPackage) || !Array.isArray(value.sourceSnapshots) || !Array.isArray(value.sourceEvidence) || !validateWvFlowResult(value.result)) throw new Error("Invalid persisted WV land aggregate");
   const caseId = value.submittedPackage.caseId;
@@ -343,8 +348,10 @@ function validateAggregateInput(value: unknown): asserts value is {
 }
 
 function validateStoredAggregate(value: unknown): asserts value is WvLandRunAggregate {
-  if (!isRecord(value) || value.schemaVersion !== "1.0" || typeof value.caseId !== "string" || typeof value.runId !== "string" || typeof value.flowVersion !== "string" || !isTimestamp(value.startedAt) || !isTimestamp(value.completedAt) || !Array.isArray(value.snapshotIds) || !isStringArray(value.snapshotIds) || !Array.isArray(value.evidenceIds) || !isStringArray(value.evidenceIds) || (value.revisionOfRunId !== undefined && typeof value.revisionOfRunId !== "string") || (value.reviewPacketId !== undefined && typeof value.reviewPacketId !== "string")) throw new Error("Invalid persisted WV land aggregate envelope");
+  if (!isRecord(value) || value.schemaVersion !== "1.0" || typeof value.caseId !== "string" || typeof value.runId !== "string" || typeof value.flowVersion !== "string" || !isTimestamp(value.startedAt) || !isTimestamp(value.completedAt) || !Array.isArray(value.snapshotIds) || !isStringArray(value.snapshotIds) || !Array.isArray(value.evidenceIds) || !isStringArray(value.evidenceIds) || !isRecord(value.judgments) || !isRecord(value.judgments.scope) || value.judgments.scope.caseId !== value.caseId || value.judgments.scope.runId !== value.runId || !Array.isArray(value.judgments.conflicts) || !Array.isArray(value.judgments.unknowns) || (value.revisionOfRunId !== undefined && typeof value.revisionOfRunId !== "string") || (value.reviewPacketId !== undefined && typeof value.reviewPacketId !== "string")) throw new Error("Invalid persisted WV land aggregate envelope");
   validateAggregateInput(value);
+  validateScopedJudgments(value.judgments, { caseId: value.caseId, runId: value.runId });
+  if (JSON.stringify(value.judgments.conflicts) !== JSON.stringify(value.result.conflicts) || JSON.stringify(value.judgments.unknowns) !== JSON.stringify(value.result.unknowns)) throw new Error("Persisted judgment scope does not match the flow result");
   if (value.snapshotIds === undefined || value.evidenceIds === undefined) throw new Error("Persisted aggregate association index is missing");
   const expectedSnapshotIds = value.sourceSnapshots.map((snapshot) => snapshot.snapshotId);
   const expectedEvidenceIds = value.sourceEvidence.map((item) => item.evidenceId);

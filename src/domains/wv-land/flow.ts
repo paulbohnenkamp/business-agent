@@ -6,6 +6,7 @@ import { WvFactCodec } from "./fact-codec";
 import { WvJudgmentCodec } from "./judgment-codec";
 import { WvSourceCodec } from "./source-codec";
 import type { ProductionAggregationResult } from "./tools/production";
+import type { LandProductionLookup, LandWell } from "../land-administration/contracts";
 import type { Conflict, Finding, SourceEvidence, SourceSnapshot, Unknown, WvProductionEvidence, WvWellEvidence } from "./contracts";
 
 const judgmentCodec = new WvJudgmentCodec(new JsonBoundary());
@@ -14,7 +15,7 @@ const sourceCodec = new WvSourceCodec(new JsonBoundary(), new WvFactCodec(new Js
 export interface SubmittedLandPackage { readonly caseId: string; readonly synthetic: true; readonly clues: Readonly<Record<string, string | undefined>>; readonly claims: readonly string[]; readonly titleAssertion: null; }
 export type WvEvidence = WvWellEvidence | WvProductionEvidence;
 export interface EvidenceAcquisition { readonly sourceId: string; readonly required: boolean; readonly status: "succeeded" | "failed"; readonly evidenceIds: readonly string[]; readonly error?: string; }
-export interface WvFlowInput { readonly caseId: string; readonly submittedPackage: SubmittedLandPackage; readonly sourceEvidence: readonly WvEvidence[]; readonly sourceSnapshots: readonly SourceSnapshot[]; readonly deterministicResults: readonly ProductionAggregationResult[]; readonly evidenceAcquisition: readonly EvidenceAcquisition[]; }
+export interface WvFlowInput { readonly caseId: string; readonly submittedPackage: SubmittedLandPackage; readonly sourceEvidence: readonly WvEvidence[]; readonly sourceSnapshots: readonly SourceSnapshot[]; readonly landWells: readonly LandWell[]; readonly productionLookups: readonly LandProductionLookup[]; readonly deterministicResults: readonly ProductionAggregationResult[]; readonly evidenceAcquisition: readonly EvidenceAcquisition[]; }
 export interface AgentExecutionRequest<TInput> { readonly agent: AgentDefinition; readonly input: TInput; readonly evidence: readonly WvEvidence[]; readonly snapshots: readonly SourceSnapshot[]; readonly deterministicResults: readonly ProductionAggregationResult[]; }
 export type AgentExecution<TOutput> = StepExecution<TOutput>;
 export interface WvAgentExecutor { execute<TInput, TOutput>(request: AgentExecutionRequest<TInput>): Promise<AgentExecution<TOutput>>; }
@@ -22,11 +23,11 @@ export interface WvAgentExecutor { execute<TInput, TOutput>(request: AgentExecut
 interface WvExecutionContext { readonly agent: AgentDefinition; readonly evidence: readonly WvEvidence[]; readonly snapshots: readonly SourceSnapshot[]; readonly deterministicResults: readonly ProductionAggregationResult[]; }
 
 /** Adapts the WV payload to the neutral opaque execution port. */
-export function asOpaqueAgentExecutor(executor: WvAgentExecutor): AgentExecutionPort<WvExecutionContext> {
-  return { execute: <TInput, TOutput>(request: OpaqueAgentExecutionRequest<TInput, WvExecutionContext>) => {
+export function asOpaqueAgentExecutor(executor: WvAgentExecutor): AgentExecutionPort {
+  return { execute: async <TInput>(request: OpaqueAgentExecutionRequest<TInput>): Promise<StepExecution<unknown>> => {
     const context = request.context;
-    if (!isAgentDefinition(context.agent)) return Promise.resolve({ status: "failed", kind: "execution", error: "WV execution context is invalid" });
-    return executor.execute({ agent: context.agent, input: request.input, evidence: context.evidence, snapshots: context.snapshots, deterministicResults: context.deterministicResults }) as Promise<AgentExecution<TOutput>>;
+    if (!isWvExecutionContext(context)) return Promise.resolve({ status: "failed", kind: "execution", error: "WV execution context is invalid" });
+    return executor.execute({ agent: context.agent, input: request.input, evidence: context.evidence, snapshots: context.snapshots, deterministicResults: context.deterministicResults });
   } };
 }
 export interface IntakeResult { readonly kind: "intake"; readonly caseId: string; readonly caseScope: "well-reconciliation" | "insufficient-scope"; readonly suppliedClues: Readonly<Record<string, string | undefined>>; readonly missingEvidence: readonly string[]; readonly ambiguousInputs: readonly string[]; readonly candidateQueries: readonly string[]; readonly route: "continue" | "request-records" | "human-review"; readonly evidenceIds: readonly string[]; }
@@ -35,7 +36,7 @@ export interface SynthesisResult { readonly kind: "synthesis"; readonly caseId: 
 export interface WvFlowResult { readonly flowId: "wv-land-well-reconciliation"; readonly caseId: string; readonly status: "complete" | "incomplete" | "failed"; readonly steps: OrderedFlowExecution["steps"]; readonly findings: readonly Finding[]; readonly conflicts: readonly Conflict[]; readonly unknowns: readonly Unknown[]; readonly evidenceRefs: readonly string[]; readonly synthesis?: SynthesisResult; readonly executionFailure?: OrderedFlowExecution["failure"]; }
 
 export function validateWvFlowInput(value: unknown): value is WvFlowInput {
-  if (!isRecord(value) || typeof value.caseId !== "string" || !isSubmittedPackage(value.submittedPackage) || !Array.isArray(value.sourceEvidence) || !Array.isArray(value.sourceSnapshots) || !Array.isArray(value.deterministicResults) || !Array.isArray(value.evidenceAcquisition)) return false;
+  if (!isRecord(value) || typeof value.caseId !== "string" || !isSubmittedPackage(value.submittedPackage) || !Array.isArray(value.sourceEvidence) || !Array.isArray(value.sourceSnapshots) || !Array.isArray(value.landWells) || !Array.isArray(value.productionLookups) || !Array.isArray(value.deterministicResults) || !Array.isArray(value.evidenceAcquisition)) return false;
   return value.submittedPackage.caseId === value.caseId && value.sourceEvidence.every(isWvEvidence) && value.sourceSnapshots.every(isSnapshot) && value.evidenceAcquisition.every(isAcquisition);
 }
 
@@ -53,15 +54,14 @@ export function validateIntake(value: unknown): value is IntakeResult { return i
 export function validateReconciliation(value: unknown): value is ReconciliationResult { return isRecord(value) && value.kind === "reconciliation" && typeof value.caseId === "string" && Array.isArray(value.findings) && Array.isArray(value.conflicts) && Array.isArray(value.unknowns) && value.findings.every(isFinding) && value.conflicts.every(isConflict) && value.unknowns.every(isUnknown) && isStringArray(value.evidenceRefs) && isRoute(value.route); }
 export function validateSynthesis(value: unknown): value is SynthesisResult { return isRecord(value) && value.kind === "synthesis" && typeof value.caseId === "string" && Array.isArray(value.findings) && Array.isArray(value.conflicts) && Array.isArray(value.unknowns) && value.findings.every(isFinding) && value.conflicts.every(isConflict) && value.unknowns.every(isUnknown) && isStringArray(value.evidenceRefs) && typeof value.synthesis === "string" && isRoute(value.proposedRoute); }
 
-export function flagshipSteps(agents: ReadonlyMap<string, AgentDefinition>, input: WvFlowInput, executor: WvAgentExecutor): readonly TypedStep[] {
+export function flagshipSteps(agents: ReadonlyMap<string, AgentDefinition>, input: WvFlowInput): readonly TypedStep[] {
   const agent = (id: string): AgentDefinition => { const definition = agents.get(id); if (!definition) throw new Error(`Missing canonical agent: ${id}`); return definition; };
   const intake = agent("land-case-intake"); const reconciler = agent("land-well-reconciler"); const synthesizer = agent("case-synthesizer");
   const context = (agent: AgentDefinition) => ({ agent, evidence: input.sourceEvidence, snapshots: input.sourceSnapshots, deterministicResults: input.deterministicResults });
-  const opaque = asOpaqueAgentExecutor(executor);
   return [
-    typedStep<WvFlowInput, IntakeResult>({ id: intake.id, required: true, validateInput: validateWvFlowInput, validateOutput: validateIntake, execute: (stepInput) => opaque.execute({ agentId: intake.id, input: stepInput, context: context(intake) }) }),
-    typedStep<IntakeResult, ReconciliationResult>({ id: reconciler.id, required: true, validateInput: (value): value is IntakeResult => validateIntake(value) && value.caseId === input.caseId, validateOutput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => opaque.execute({ agentId: reconciler.id, input: stepInput, context: context(reconciler) }) }),
-    typedStep<ReconciliationResult, SynthesisResult>({ id: synthesizer.id, required: true, validateInput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), validateOutput: (value): value is SynthesisResult => validateSynthesis(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => opaque.execute({ agentId: synthesizer.id, input: stepInput, context: context(synthesizer) }) }),
+    typedStep<WvFlowInput, IntakeResult>({ id: intake.id, required: true, validateInput: validateWvFlowInput, validateOutput: validateIntake, execute: (stepInput, execution) => invoke(execution, intake, stepInput, context(intake)) }),
+    typedStep<IntakeResult, ReconciliationResult>({ id: reconciler.id, required: true, validateInput: (value): value is IntakeResult => validateIntake(value) && value.caseId === input.caseId, validateOutput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput, execution) => invoke(execution, reconciler, stepInput, context(reconciler)) }),
+    typedStep<ReconciliationResult, SynthesisResult>({ id: synthesizer.id, required: true, validateInput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), validateOutput: (value): value is SynthesisResult => validateSynthesis(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput, execution) => invoke(execution, synthesizer, stepInput, context(synthesizer)) }),
   ];
 }
 
@@ -69,7 +69,7 @@ export async function executeWvLandFlow(input: WvFlowInput, agents: ReadonlyMap<
   if (!validateWvFlowInput(input)) throw new Error("Invalid WV land flow input");
   const acquisitionFailure = input.evidenceAcquisition.find((item) => item.required && item.status === "failed");
   if (acquisitionFailure !== undefined) return { flowId: "wv-land-well-reconciliation", caseId: input.caseId, status: "failed", steps: ["land-case-intake", "land-well-reconciler", "case-synthesizer"].map((stepId) => ({ status: "blocked", stepId, kind: "execution" as const, error: `Blocked by required evidence acquisition failure: ${acquisitionFailure.sourceId}` })), findings: [], conflicts: [], unknowns: [], evidenceRefs: [], executionFailure: { stepId: `evidence-acquisition:${acquisitionFailure.sourceId}`, kind: "execution", message: acquisitionFailure.error ?? "Required evidence acquisition failed" } };
-  const execution = await executeOrderedSteps(input, flagshipSteps(agents, input, executor));
+  const execution = await executeOrderedSteps(input, flagshipSteps(agents, input), asOpaqueAgentExecutor(executor));
   const synthesis = execution.artifacts.find(isSynthesis);
   const reconciliation = execution.artifacts.find(isReconciliation);
   return { flowId: "wv-land-well-reconciliation", caseId: input.caseId, status: execution.status === "succeeded" ? "complete" : "failed", steps: execution.steps, findings: synthesis?.findings ?? reconciliation?.findings ?? [], conflicts: synthesis?.conflicts ?? reconciliation?.conflicts ?? [], unknowns: synthesis?.unknowns ?? reconciliation?.unknowns ?? [], evidenceRefs: synthesis?.evidenceRefs ?? reconciliation?.evidenceRefs ?? [], ...(synthesis === undefined ? {} : { synthesis }), ...(execution.failure === undefined ? {} : { executionFailure: execution.failure }) };
@@ -77,6 +77,8 @@ export async function executeWvLandFlow(input: WvFlowInput, agents: ReadonlyMap<
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function isAgentDefinition(value: unknown): value is AgentDefinition { return isRecord(value) && typeof value.id === "string" && typeof value.version === "string"; }
+function isWvExecutionContext(value: unknown): value is WvExecutionContext { return isRecord(value) && isAgentDefinition(value.agent) && Array.isArray(value.evidence) && Array.isArray(value.snapshots) && Array.isArray(value.deterministicResults); }
+function invoke<TInput, TOutput>(execution: AgentExecutionPort | undefined, agent: AgentDefinition, input: TInput, context: WvExecutionContext): Promise<StepExecution<TOutput>> { return execution === undefined ? Promise.resolve({ status: "failed", kind: "execution", error: "No agent execution boundary supplied" }) : execution.execute({ agentId: agent.id, input, context }) as Promise<StepExecution<TOutput>>; }
 function isStringArray(value: unknown): value is readonly string[] { return Array.isArray(value) && value.every((item) => typeof item === "string"); }
 function isStringRecord(value: unknown): value is Readonly<Record<string, string | undefined>> { return isRecord(value) && Object.values(value).every((item) => item === undefined || typeof item === "string"); }
 function isRoute(value: unknown): value is IntakeResult["route"] { return value === "continue" || value === "request-records" || value === "human-review"; }

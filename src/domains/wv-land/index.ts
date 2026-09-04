@@ -1,8 +1,12 @@
+/**
+ * Legacy WV public façade. Internal composition uses the jurisdiction path;
+ * remove these re-exports only with an intentional public API version change.
+ */
 export * from "./contracts";
 export * from "./serialization";
-export * from "./adapters/source-adapter";
-export * from "./adapters/arcgis";
-export * from "./adapters/production";
+export * from "../land-administration/jurisdictions/wv/publishers/source-adapter";
+export * from "../land-administration/jurisdictions/wv/publishers/arcgis";
+export * from "../land-administration/jurisdictions/wv/publishers/production";
 export * from "./tools/identifiers";
 export * from "./tools/names";
 export * from "./tools/dates";

@@ -7,6 +7,8 @@ import { loadAgents } from "../src/core/agents";
 import { loadFlows, validateFlow } from "../src/core/flows";
 import { runFlow, RunService, updateReviewStatus } from "../src/core/orchestrator";
 import { FileRunStore } from "../src/storage/file-run-store";
+import { executeOrderedSteps, typedStep } from "../src/core/typed-flow";
+import type { AgentExecutionPort } from "../src/core/agent-execution";
 
 async function sourceFilesUnder(directory: string): Promise<readonly string[]> {
   const { readdir } = await import("node:fs/promises");
@@ -27,6 +29,7 @@ describe("domain-oriented agent architecture", () => {
     const storage = await readFile(join(process.cwd(), "src/core/storage.ts"), "utf8");
     assert.doesNotMatch(ports, /retrieval\/local/);
     assert.doesNotMatch(orchestrator, /FileRunStore/);
+    assert.doesNotMatch(orchestrator, /node:fs|node:path/);
     assert.doesNotMatch(storage, /from ["']\.\/orchestrator["']/);
   });
 
@@ -37,6 +40,15 @@ describe("domain-oriented agent architecture", () => {
       assert.doesNotMatch(source, /domains\/wv-land|domains\/land-administration|wvdep|wvges|Wv[A-Z]|SourceIdentity|Finding|Conflict|Unknown/,
         `${file} imports or names a jurisdiction-owned concept`);
     }
+  });
+
+  it("passes opaque domain-owned execution through generic typed flow", async () => {
+    const calls: string[] = [];
+    const execution: AgentExecutionPort = { async execute(request) { calls.push(request.agentId); return { status: "succeeded", artifact: { value: request.input } }; } };
+    const steps = [typedStep<{ value: string }, { value: { value: string } }>({ id: "opaque-step", required: true, validateInput: (value): value is { value: string } => typeof value === "object" && value !== null && "value" in value && typeof value.value === "string", validateOutput: (value): value is { value: { value: string } } => typeof value === "object" && value !== null && "value" in value, execute: async (input, port) => port!.execute({ agentId: "opaque-agent", input, context: { domain: "test" } }) as Promise<import("../src/core/agent-execution").StepExecution<{ value: { value: string } }>> })];
+    const result = await executeOrderedSteps({ value: "input" }, steps, execution);
+    assert.equal(result.status, "succeeded");
+    assert.deepEqual(calls, ["opaque-agent"]);
   });
 
   it("keeps the reusable evaluation layer free of WV implementation edges", async () => {

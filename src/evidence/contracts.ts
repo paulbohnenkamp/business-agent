@@ -1,5 +1,6 @@
 /** Provider-neutral source and judgment contracts. They do not describe land facts. */
 export type SourceMechanism = string;
+export type JsonValue = string | number | boolean | null | JsonValue[] | { readonly [key: string]: JsonValue };
 export type FindingStatus = "supported" | "contradicted" | "inconclusive" | "unknown";
 export type FindingConfidence = "high" | "medium" | "low" | "unknown";
 

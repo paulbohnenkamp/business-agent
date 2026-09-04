@@ -115,8 +115,8 @@ the WV suite composition.
 **Move:** `SourceIdentity`, `SourceSnapshot`, generic `SourceEvidence<T>`,
 `Provenance`, and `Finding`, plus their validation/codec mechanics. Generalize
 source mechanism metadata without adding land fields. `Conflict` and `Unknown`
-remain deferred until their aggregate-inherited case/run scope invariant is
-implemented.
+are shared judgment contracts carried in an aggregate-scoped container whose
+case/run scope is validated against the containing aggregate.
 **Destination:** `src/evidence/`.
 **Compatibility:** migrate codecs and imports immediately; use a short-lived
 WV adapter only at the old public boundary, then delete WV aliases.
@@ -133,8 +133,8 @@ independent.
 **Implementation note:** `src/evidence/contracts.ts` now owns source identity,
 immutable snapshot, source evidence, provenance, and finding contracts. WV
 codecs retain the existing validation behavior while importing those neutral
-types. Conflict and Unknown remain WV-owned until aggregate-inherited scope is
-implemented.
+types. WV remains responsible for domain-specific judgment production and
+validation composition.
 
 ### 4. Establish the minimal shared LandWell projection
 
@@ -228,9 +228,8 @@ arithmetic outside agent judgment.
 **Destination:** neutral agent prose/inputs where justified; WV policy and
 `wv-land-well-reconciliation` flow configuration for source requirements and
 independence.
-**Compatibility:** do not modify agents in Phase 7.5; during implementation,
-make prompt changes with the current WV suite and preserve the same structured
-outputs and routes.
+**Compatibility:** preserve the current WV prompt outputs and routes while
+moving runtime execution mechanics behind the neutral port.
 **Proof:** prompt/evaluation cases must continue to prove evidence grounding,
 WVDEP/WVGES source independence, preserved conflicts/unknowns, human review,
 and no-title-proof behavior after publisher names are removed from reusable
@@ -274,7 +273,7 @@ factory, DI framework, plugin system, executor hierarchy, or abstract base
 class.
 **Compatibility:** behavior-preserving extraction; retain the current three
 agent IDs, structured outputs, ordered required-step validation, and blocked
-dependent-step behavior. Agents and flows are not modified in Phase 7.5.
+dependent-step behavior.
 **Proof:** existing flow tests plus a contract test with an opaque request and
 result proving the generic boundary has no WV/domain imports.
 **Architecture check:** core cannot import WV, land, publisher, or source
@@ -365,7 +364,7 @@ Step 8.
 **Destination:** core typed-flow mechanics; WV flow composition remains
 WV-local.
 **Compatibility:** preserve ordered required-step fail-closed behavior and the
-current three agent IDs. Agent definitions are not modified in Phase 7.5.
+current three agent IDs.
 **Proof:** flow tests for valid output, validation failure, required evidence
 failure, blocked dependent steps, case isolation, and source independence.
 **Architecture check:** core cannot import land or jurisdiction; agents cannot
@@ -416,9 +415,9 @@ steps are performed and verified.
 
 1. **PASS** — WV remains the flagship, not a runtime assumption.
 2. **PASS** — shared land administration is distinct from WV.
-3. **PASS** — `Finding` is a candidate shared judgment contract; `Conflict`
-   and `Unknown` are explicitly deferred until aggregate-inherited case/run
-   scope is implemented.
+3. **PASS** — `Finding`, `Conflict`, and `Unknown` are shared judgment
+   contracts; conflicts and unknowns are transported only inside an
+   aggregate-scoped container whose case/run scope is validated.
 4. **PASS** — jurisdiction semantics and publisher parsing are distinct.
 5. **PASS** — `SourceAdapter` remains distinct from `RetrievalProvider`.
 6. **PASS** — WVDEP and WVGES remain independent evidence sources.
@@ -456,8 +455,8 @@ npm run validate:records
 git diff --check
 ```
 
-The Phase 7.5 documentation phase itself must not run live source acquisition
-or change production behavior. `npm run validate:records` currently reports
+The migration must not run live source acquisition or change frozen fixture
+behavior. `npm run validate:records` currently reports
 pre-existing record-heading issues in historical records 001–004; future
 implementation work must distinguish those baseline findings from new
 failures rather than weakening validation.
@@ -494,8 +493,8 @@ Ohio production adapter or mapping.
    minimal and preserve raw/source-specific extensions.
 6. Generic mechanics are extracted only where the current implementation or
    demonstrated jurisdictions prove a reusable responsibility.
-7. `Conflict` and `Unknown` are not extracted until their aggregate-inherited
-   case/run scope invariant is implemented.
+7. `Conflict` and `Unknown` are extracted behind an aggregate-inherited
+   case/run scope invariant; standalone unscoped persistence is rejected.
 8. `LandWell`, `LandProductionRecord`, and the generic responsibility behind
    `WvAgentExecutor` are extracted now; WV publisher facts and policy remain
    WV-specific, and Ohio production adapter/mapping remains deferred until

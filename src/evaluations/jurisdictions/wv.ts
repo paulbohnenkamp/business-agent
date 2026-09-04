@@ -1,4 +1,4 @@
-import { WV_LAND_POLICY, requiresIndependentSourceEvidence } from "../../domains/wv-land/policy";
+import { WV_LAND_POLICY, requiresIndependentSourceEvidence } from "../../domains/land-administration/jurisdictions/wv/policy";
 import type { LandEvaluationPolicy } from "../land-administration/policy";
 
 export const wvEvaluationPolicy: LandEvaluationPolicy = {
