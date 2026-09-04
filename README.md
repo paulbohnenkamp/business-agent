@@ -29,6 +29,34 @@ flagship under `src/domains/wv-land` and its jurisdiction composition boundary.
 The source adapters and flagship workflow are implemented offline; Ohio and
 Pennsylvania remain design-only extensions.
 
+## Run the demo
+
+The fastest demonstration is the local West Virginia case workspace. It uses
+the checked-in synthetic Braxton County package and frozen WVDEP/WVGES and
+production evidence; it does not need Azure credentials or live government
+endpoints.
+
+```sh
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000), select **Run Land-Well
+Reconciliation**, and walk through the three agents, independent evidence,
+preserved operator conflict, production no-match, synthesis, and human review.
+The local executor produces validated structured artifacts deterministically so
+the demo is repeatable. It is an explicit provider seam, not a claim of live
+LLM execution. The later Azure milestone can replace that executor with the
+existing Foundry adapter while retaining the same flow, evidence, persistence,
+and review boundaries.
+
+The local demo writes file-backed run data to `/tmp/business-agent-demo` by
+default. Set `BUSINESS_AGENT_WORKSPACE` to use another directory. Azure hosting
+will need a web runtime, durable shared persistence instead of local files,
+model execution configuration and secrets, and fixture data packaged as an
+immutable application asset or stored in object storage. No live endpoint is
+required for this demo.
+
 Then run the complete example in the [quickstart](docs/quickstart.md).
 
 Then read [the documentation map](docs/README.md). The recommended order is:

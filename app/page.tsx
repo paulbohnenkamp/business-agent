@@ -1,20 +1,35 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type Evidence = { evidenceId: string; source: { id: string; publisher: string; dataset: string; authorityScope: string }; sourceRecordId: string; sourceUrl: string; normalizedFacts: Record<string, unknown>; warnings: string[] };
+type DemoCase = { caseId: string; fixtureId: string; submittedPackage: { synthetic: true; clues: Record<string, string> }; snapshots: { snapshotId: string; source: { publisher: string }; retrievedAt: string; contentHash: string; rawSnapshotRef: string }[]; evidence: Evidence[]; production: { explanation: string }; titleBoundary: string };
+type Finding = { findingId: string; subject: string; assertion: string; status: string; confidence: string; evidenceIds: string[]; conflictIds: string[]; unknownIds: string[]; provenance: { stepId: string; producerVersion: string } };
+type Aggregate = { runId: string; result: { steps: { stepId: string; status: string; artifact?: { kind?: string } }[]; findings: Finding[]; conflicts: { conflictId: string; subject: string; reason: string; status: string; claims: { value: unknown; evidenceIds: string[] }[] }[]; unknowns: { unknownId: string; subject: string; question: string; reason: string; neededEvidence?: string[] }[]; synthesis?: { synthesis: string; proposedRoute: string } } };
+type Review = { state: string; packet: { proposedRoute: string } };
+
+const sourceColors: Record<string, string> = { WVDEP: "#f59e0b", WVGES: "#38bdf8" };
+
 export default function HomePage() {
-  return (
-    <main>
-      <h1>Business Agent</h1>
-      <p>Configurable, auditable agents for enterprise business workflows.</p>
-      <p>Land administration is the reference domain. Run data stays local by default.</p>
-      <nav>
-        <a href="/review">Open local review console</a>
-        {" · "}
-        <a href="/api/catalog">View domain catalog API</a>
-      </nav>
-      <h2>Local architecture</h2>
-      <ul>
-        <li>Markdown/YAML defines agents, skills, and flows.</li>
-        <li>RunService records handoffs and waits for human review.</li>
-        <li>Evaluations protect evidence, uncertainty, and safety boundaries.</li>
-      </ul>
-    </main>
-  );
+  const [caseData, setCaseData] = useState<DemoCase>();
+  const [aggregate, setAggregate] = useState<Aggregate>();
+  const [review, setReview] = useState<Review>();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const evidenceById = useMemo(() => new Map(caseData?.evidence.map((item) => [item.evidenceId, item]) ?? []), [caseData]);
+  useEffect(() => { void fetch("/api/demo/case").then((response) => response.json()).then(setCaseData); }, []);
+  async function run() { setBusy(true); setMessage(""); const response = await fetch("/api/demo/run", { method: "POST" }); const body = await response.json(); if (!response.ok) setMessage(body.error ?? "The local run failed."); else { setAggregate(body); setReview(undefined); } setBusy(false); }
+  async function decide(decision: "approved" | "revision-requested") { if (!aggregate) return; const response = await fetch(`/api/demo/runs/${aggregate.runId}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision, reviewerId: "local-demo-reviewer", reason: decision === "approved" ? "Reviewed evidence, conflicts, and unknowns for demonstration." : "Additional human review is required before proceeding." }) }); const body = await response.json(); if (response.ok) setReview(body); else setMessage(body.error ?? "Review failed."); }
+  if (!caseData) return <main className="loading"><span className="eyebrow">BUSINESS AGENT</span><h1>Loading the WV case workspace…</h1></main>;
+  const result = aggregate?.result;
+  return <main className="shell">
+    <header className="topbar"><div><span className="eyebrow">BUSINESS AGENT / LAND ADMINISTRATION</span><h1>Case workspace</h1></div><span className="offline"><i /> LOCAL · FROZEN EVIDENCE</span></header>
+    <section className="hero"><div><span className="eyebrow amber">FLAGSHIP WORKFLOW</span><h2>WV land-well reconciliation</h2><p>Evidence-bounded review of a submitted land package against independent West Virginia public sources.</p></div><button className="primary" onClick={run} disabled={busy}>{busy ? "Running workflow…" : "Run Land-Well Reconciliation"}</button></section>
+    {message && <div className="alert">{message}</div>}
+    <section className="case-grid"><article className="card case-card"><div className="card-head"><div><span className="eyebrow">CASE</span><h3>Braxton County well review</h3></div><span className="pill synthetic">SYNTHETIC DEMO DATA</span></div><div className="case-id">{caseData.caseId}</div><div className="facts"><Fact label="API number" value={caseData.submittedPackage.clues.apiNumber} /><Fact label="County" value={caseData.submittedPackage.clues.county} /><Fact label="Well number" value={caseData.submittedPackage.clues.wellNumber} /></div><p className="notice">Submitted private information is synthetic and exists only for this offline demonstration.</p></article><article className="card boundary"><span className="eyebrow">AUTHORITY BOUNDARY</span><p>{caseData.titleBoundary}</p><span className="muted">Public records support comparison and provenance, not a title determination.</span></article></section>
+    <section className="card workflow"><div className="card-head"><div><span className="eyebrow">WORKFLOW</span><h3>Three bounded agents</h3></div>{result && <span className="pill complete">{result.synthesis ? "COMPLETE · HUMAN REVIEW" : "RUNNING"}</span>}</div><div className="steps">{["land-case-intake", "land-well-reconciler", "case-synthesizer"].map((id, index) => { const step = result?.steps.find((item) => item.stepId === id); return <div className={`step ${step?.status === "succeeded" ? "done" : ""}`} key={id}><span className="step-num">{step?.status === "succeeded" ? "✓" : index + 1}</span><div><strong>{["Case Intake", "Land-Well Reconciler", "Case Synthesizer"][index]}</strong><small>{step?.status === "succeeded" ? "Structured output validated" : "Awaiting run"}</small></div></div>; })}</div></section>
+    {result && <><section className="section-title"><div><span className="eyebrow">EVIDENCE</span><h2>Independent source record</h2></div><span className="muted">5 normalized records · 3 immutable snapshots</span></section><section className="evidence-grid">{["WVDEP", "WVGES"].map((publisher) => <article className="card source-card" key={publisher}><div className="source-title"><span className="source-dot" style={{ background: sourceColors[publisher] }} /><div><h3>{publisher}</h3><span className="muted">{publisher === "WVDEP" ? "Reported regulatory well information" : "Geological and historical well information"}</span></div></div>{caseData.evidence.filter((item) => item.source.publisher === publisher).map((item) => <details key={item.evidenceId}><summary><span>{String(item.normalizedFacts.sourceRecordType ?? "Well record")}</span><code>{item.sourceRecordId}</code></summary><div className="detail"><Fact label="Operator" value={String(item.normalizedFacts.operator ?? "Not reported")} /><Fact label="Status" value={String(item.normalizedFacts.status ?? "Not reported")} /><Fact label="API" value={String(item.normalizedFacts.apiNumber ?? "Not reported")} /><span className="provenance">Evidence {item.evidenceId} · <a href={item.sourceUrl} target="_blank">source URL ↗</a></span></div></details>)}</article>)}</section><section className="split"><article className="card"><div className="card-head"><div><span className="eyebrow red">CONFLICT PRESERVED</span><h3>Operator disagreement</h3></div><span className="pill unresolved">UNRESOLVED</span></div>{result.conflicts.map((conflict) => <div key={conflict.conflictId}><p>{conflict.reason}</p><div className="claims">{conflict.claims.map((claim) => <div className="claim" key={String(claim.value)}><strong>{String(evidenceById.get(claim.evidenceIds[0] ?? "")?.source.publisher ?? "Source")}</strong><span>{String(claim.value)}</span></div>)}</div></div>)}</article><article className="card"><div className="card-head"><div><span className="eyebrow purple">UNKNOWN</span><h3>Evidence gaps</h3></div><span className="pill unresolved">{result.unknowns.length} OPEN</span></div>{result.unknowns.map((unknown) => <div className="unknown" key={unknown.unknownId}><strong>{unknown.subject}</strong><p>{unknown.question}</p><span className="muted">{unknown.reason}</span></div>)}</article></section><section className="card findings"><div className="card-head"><div><span className="eyebrow">FINDINGS</span><h3>Structured judgment packet</h3></div><span className="muted">Evidence-linked · producer versioned</span></div>{result.findings.map((finding) => <details key={finding.findingId} open><summary><span className={`status-dot ${finding.status}`} /> <strong>{finding.subject}</strong><span className="finding-status">{finding.status} · {finding.confidence} confidence</span></summary><div className="finding-body"><p>{finding.assertion}</p><div className="finding-meta"><span>Evidence: {finding.evidenceIds.length ? finding.evidenceIds.length + " linked" : "None — explicit unknown"}</span><span>Step: {finding.provenance.stepId}</span><span>Producer: {finding.provenance.producerVersion}</span></div></div></details>)}</section><section className="card synthesis"><span className="eyebrow amber">REVIEW PACKET</span><h2>What should the analyst do next?</h2><p>{result.synthesis?.synthesis}</p><div className="next"><strong>Proposed route</strong><span>Human review</span></div></section><section className="review card"><div><span className="eyebrow">HUMAN REVIEW</span><h3>{review?.state === "approved" ? "Review recorded: approved" : review?.state === "revision-requested" ? "Review recorded: more review requested" : "Decision boundary"}</h3><p className="muted">This action records a reviewer decision only. It does not file documents, change a registry, update payment, contact owners, or determine title.</p></div><div className="review-actions"><button className="secondary" onClick={() => void decide("revision-requested")} disabled={!!review}>Request more review</button><button className="primary" onClick={() => void decide("approved")} disabled={!!review}>Approve review packet</button></div></section></>}
+    <footer><span>Offline demo · fixture {caseData.fixtureId}</span><a href="/api/catalog">View catalog API</a></footer>
+  </main>;
 }
+function Fact({ label, value }: { label: string; value?: string }) { return <div className="fact"><span>{label}</span><strong>{value || "—"}</strong></div>; }
