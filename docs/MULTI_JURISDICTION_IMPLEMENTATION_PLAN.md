@@ -107,7 +107,7 @@ or publisher IDs.
 
 ### 3. Extract shared evidence, judgment, and JSON boundary contracts
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** `SourceIdentity`, `SourceSnapshot`, generic `SourceEvidence<T>`,
 `Provenance`, and `Finding`, plus their validation/codec mechanics. Generalize
 source mechanism metadata without adding land fields. `Conflict` and `Unknown`
@@ -126,9 +126,15 @@ the WV contracts.
 **Rollback:** restore the contract files while leaving evaluation extraction
 independent.
 
+**Implementation note:** `src/evidence/contracts.ts` now owns source identity,
+immutable snapshot, source evidence, provenance, and finding contracts. WV
+codecs retain the existing validation behavior while importing those neutral
+types. Conflict and Unknown remain WV-owned until aggregate-inherited scope is
+implemented.
+
 ### 4. Establish the minimal shared LandWell projection
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Architectural purpose:** establish the smallest shared Land Administration
 well concept demonstrated by the current reconciliation workflow, without
 turning it into a union of WV, Ohio, and Pennsylvania schemas.
@@ -161,9 +167,13 @@ without changing fixture bytes or persisted artifacts.
 temporary adapter, raw evidence remains available, and no publisher-only
 field is required by the shared contract.
 
+**Implementation note:** `src/domains/land-administration/contracts.ts` owns
+the minimal projection; `src/domains/wv-land/projections.ts` is the temporary
+WV mapping and preserves publisher-only values in extensions.
+
 ### 5. Establish the minimal shared LandProductionRecord projection
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Architectural purpose:** establish the smallest shared source-backed
 production observation demonstrated by land administration, without claiming
 complete Ohio production semantics.
@@ -197,6 +207,10 @@ boundary without changing fixture bytes or persisted artifacts.
 **Completion:** current WV production behavior is preserved through the shared
 projection, unsupported semantics fail closed, and ODNR implementation remains
 explicitly unstarted.
+
+**Implementation note:** the shared projection uses explicit `value`, `unit`,
+`period`, and `matchStatus`; WV commodity values map through
+`toLandProductionRecords`. No Ohio adapter or commodity taxonomy was added.
 
 ### 6. Move WV assumptions out of reusable agent responsibility
 

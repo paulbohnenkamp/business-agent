@@ -11,3 +11,4 @@ export * from "./tools/hashing";
 export * from "./tools/production";
 export * from "./flow";
 export * from "./persistence";
+export * from "./projections";

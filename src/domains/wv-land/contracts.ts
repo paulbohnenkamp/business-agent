@@ -7,88 +7,9 @@
  * not a title determination.
  */
 
-export type SourceMechanism = "arcgis-rest" | "xlsx-download";
-/** Finding outcomes distinguish direct support, contradiction, unresolved comparison, and evidence absence. */
-export type FindingStatus = "supported" | "contradicted" | "inconclusive" | "unknown";
-export type FindingConfidence = "high" | "medium" | "low" | "unknown";
+import type { Finding, FindingConfidence, FindingStatus, Provenance, SourceEvidence, SourceIdentity, SourceMechanism, SourceSnapshot } from "../../evidence/contracts";
+export type { Finding, FindingConfidence, FindingStatus, Provenance, SourceEvidence, SourceIdentity, SourceMechanism, SourceSnapshot } from "../../evidence/contracts";
 export type ConflictStatus = "unresolved" | "resolved-by-review";
-
-/** Identifies a published dataset, not one retrieval from that dataset. */
-export interface SourceIdentity {
-  readonly id: string;
-  readonly publisher: string;
-  readonly dataset: string;
-  readonly mechanism: SourceMechanism;
-  readonly datasetVersion?: string;
-  readonly authorityScope: string;
-}
-
-/**
- * Describes one immutable byte-level retrieval. A refresh creates a new
- * snapshot even when its normalized facts happen to be unchanged. The
- * `immutable` marker and decoded runtime freezing protect metadata in memory;
- * write-once raw-byte storage is a later retrieval/persistence responsibility.
- */
-export interface SourceSnapshot {
-  readonly snapshotId: string;
-  readonly source: SourceIdentity;
-  readonly requestUrl: string;
-  readonly retrievedAt: string;
-  readonly effectiveDate?: string;
-  readonly publicationDate?: string;
-  readonly contentType: string;
-  readonly contentHash: string;
-  readonly rawSnapshotRef: string;
-  readonly byteLength: number;
-  readonly parserVersion?: string;
-  readonly immutable: true;
-}
-
-/** One normalized source record linked to the exact snapshot that produced it. */
-export interface SourceEvidence<TFacts> {
-  readonly evidenceId: string;
-  readonly snapshotId: string;
-  readonly source: SourceIdentity;
-  readonly sourceRecordId: string;
-  readonly sourceUrl: string;
-  readonly retrievedAt: string;
-  readonly effectiveDate?: string;
-  readonly publicationDate?: string;
-  readonly contentHash: string;
-  readonly rawSnapshotRef: string;
-  readonly normalizedFacts: TFacts;
-  readonly warnings: readonly string[];
-}
-
-/** Links a judgment to the run, step, records, evidence, and producer version. */
-export interface Provenance {
-  readonly runId: string;
-  readonly stepId: string;
-  readonly inputRecordIds: readonly string[];
-  readonly sourceEvidenceIds: readonly string[];
-  readonly producerVersion: string;
-}
-
-/**
- * Durable business state; Markdown agent output is only its presentation.
- * Supported and contradicted findings require direct evidence. Inconclusive
- * findings may instead point to conflicts or unknowns; unknown findings may
- * have no direct evidence.
- */
-export interface Finding {
-  readonly findingId: string;
-  readonly caseId: string;
-  readonly subject: string;
-  readonly assertion: string;
-  readonly status: FindingStatus;
-  readonly confidence: FindingConfidence;
-  readonly evidenceIds: readonly string[];
-  readonly conflictIds: readonly string[];
-  readonly unknownIds: readonly string[];
-  readonly provenance: Provenance;
-  readonly producer: string;
-  readonly producedAt: string;
-}
 
 /** Preserves competing claims instead of silently selecting one source. */
 export interface Conflict {
