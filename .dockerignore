@@ -1,6 +1,11 @@
 node_modules
 .next
+coverage
+dist
 .git
 *.zip
 runs
 .env*
+.copilot-azure
+workspace/private
+*.tsbuildinfo
