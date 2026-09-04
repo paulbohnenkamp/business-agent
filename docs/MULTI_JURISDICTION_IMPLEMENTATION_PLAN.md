@@ -214,7 +214,7 @@ explicitly unstarted.
 
 ### 6. Move WV assumptions out of reusable agent responsibility
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** separate the jurisdiction-neutral responsibilities of
 `land-case-intake`, `land-well-reconciler`, and `case-synthesizer` from WVDEP,
 WVGES, WV source requirements, and WV-specific evidence expectations. Move
@@ -238,7 +238,7 @@ identity; WV policy contains the independence rule.
 
 ### 7. Separate WV jurisdiction and publisher implementations
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** WVDEP/WVGES source identities, field maps, parsers, WV identifier and
 status rules, production adapter, WV tools, and source-independence policy out
 of the shared land directory.
@@ -257,7 +257,7 @@ bytes.
 
 ### 8. Extract generic agent-execution responsibility
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** separate typed ordered-step and agent-execution mechanics from the
 WV-shaped `WvAgentExecutor` request/result/policy. The generic boundary accepts
 an agent identifier and domain-owned request and returns a domain-owned result
@@ -278,9 +278,14 @@ policy; domain composition adapts its own payloads at the boundary.
 **Risk:** medium.
 **Rollback:** restore the WV adapter over the unchanged typed-flow mechanics.
 
+**Implementation note:** `src/core/agent-execution.ts` defines the opaque
+execution port. WV retains its payload-specific executor and adapts it at the
+composition boundary; reusable agents no longer name WV publishers. WV source
+and title-proof requirements are explicit in `src/domains/wv-land/policy.ts`.
+
 ### 9A. Extract Persistence A: atomic file/publication primitives
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** temp write, fsync/rename/publication behavior where applicable,
 recovery/cleanup rules, and JSON-safe canonical serialization mechanics that do
 not know `WvLandRunAggregate`.
@@ -294,7 +299,7 @@ tests.
 
 ### 9B. Establish Persistence B: durable run storage port/envelope
 
-**Status:** not started
+**Status:** completed in Step 0 and committed as `046db76`
 **Move:** neutral run identity, run record, and storage port contracts; make
 concrete file persistence implement them.
 **Destination:** neutral run/storage contracts and injected concrete store.
@@ -309,7 +314,7 @@ orchestrator → port and composition-root → concrete store.
 
 ### 9C. Extract Persistence C: review decision/history mechanics
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** append-only decisions, revision lineage, and domain-neutral review
 state transitions/invariants. Keep proposed routes and action payloads
 domain-owned.
@@ -326,7 +331,7 @@ lineage tests.
 
 ### 9D. Establish Persistence D: land aggregate repository/composition
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** land evidence relationships, land review packet projection, land
 aggregate validation, and any jurisdiction-specific durable state.
 **Destination:** land repository and WV composition; no `OhLandRunStore` clone.
@@ -340,9 +345,16 @@ publisher imports.
 **Risk:** high.
 **Rollback:** restore WV aggregate composition over the generic capabilities.
 
+**Implementation note:** generic write-once publication, canonical JSON safety,
+and recursive freezing are in `src/storage/file-primitives.ts`. The existing
+WV repository remains the land-owned composition over the neutral run store;
+review lifecycle state transitions are in `src/review/lifecycle.ts`, while
+packet, snapshot, route, and aggregate relationships remain domain-owned at
+that boundary.
+
 ### 10. Preserve generic typed-flow behavior after execution extraction
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** retain the demonstrated generic ordered-step validation and immutable
 artifact boundary in `core`, now consuming the generic execution boundary from
 Step 8.
@@ -359,7 +371,7 @@ import adapters.
 
 ### 11. Layer land and jurisdiction evaluation policies
 
-**Status:** not started
+**Status:** completed and committed in the current migration
 **Move:** finding/conflict/unknown grounding, case isolation, route and
 production semantics into land grading; WV fixture IDs, field paths, parser
 rules, and WVDEP/WVGES independence into WV policy/cases.
@@ -376,7 +388,7 @@ has no WV source IDs.
 
 ### 12. Add a second-jurisdiction design-only contract proof
 
-**Status:** deferred until the prior steps pass
+**Status:** completed and committed in the current migration
 **Move:** define an in-memory OH policy and adapter contract without live calls,
 fixtures, or Ohio implementation.
 **Destination:** design/test-only contract shape, not production OH code.
@@ -386,6 +398,11 @@ evidence, land, persistence, and review mechanics.
 **Risk:** low.
 **Rollback:** remove the proof if it starts prescribing an unvalidated OH
 schema.
+
+**Implementation note:** typed-flow behavior remains in neutral core; land
+evaluation policy is in `src/evaluations/land-administration`, WV policy is in
+`src/evaluations/jurisdictions/wv.ts`, and the test-only OH-shaped policy proves
+reuse without adding an Ohio adapter, fixture, catalog entry, or live call.
 
 ## Design-phase acceptance status
 

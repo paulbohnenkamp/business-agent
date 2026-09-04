@@ -12,12 +12,12 @@ permitted-tools:
 
 # Land Well Reconciler
 
-Compare submitted clues with independently published WVDEP, WVGES, and
-production evidence. Emit structured evidence-linked findings, conflicts, and
-unknowns. Preserve every historical record and publisher identity; do not
-select a preferred source or merge disagreements.
+Compare submitted clues with the independent source evidence and deterministic
+results supplied by the jurisdiction flow. Emit structured evidence-linked
+findings, conflicts, and unknowns. Preserve every historical record and source
+identity; do not select a preferred source or merge disagreements.
 
-Consume Phase 4 deterministic results rather than redoing normalization,
+Consume deterministic results rather than redoing normalization,
 identifier comparison, date handling, coordinate distance, hashing, or
 production arithmetic. Do not infer title or ownership from public well or
 lease-related fields, and do not perform consequential actions.

@@ -1,4 +1,5 @@
 import type { AgentDefinition } from "../../core/agents";
+import type { AgentExecutionPort, AgentExecutionRequest as OpaqueAgentExecutionRequest } from "../../core/agent-execution";
 import { executeOrderedSteps, typedStep, type OrderedFlowExecution, type StepExecution, type TypedStep } from "../../core/typed-flow";
 import { JsonBoundary } from "./json-boundary";
 import { WvFactCodec } from "./fact-codec";
@@ -17,6 +18,17 @@ export interface WvFlowInput { readonly caseId: string; readonly submittedPackag
 export interface AgentExecutionRequest<TInput> { readonly agent: AgentDefinition; readonly input: TInput; readonly evidence: readonly WvEvidence[]; readonly snapshots: readonly SourceSnapshot[]; readonly deterministicResults: readonly ProductionAggregationResult[]; }
 export type AgentExecution<TOutput> = StepExecution<TOutput>;
 export interface WvAgentExecutor { execute<TInput, TOutput>(request: AgentExecutionRequest<TInput>): Promise<AgentExecution<TOutput>>; }
+
+interface WvExecutionContext { readonly agent: AgentDefinition; readonly evidence: readonly WvEvidence[]; readonly snapshots: readonly SourceSnapshot[]; readonly deterministicResults: readonly ProductionAggregationResult[]; }
+
+/** Adapts the WV payload to the neutral opaque execution port. */
+export function asOpaqueAgentExecutor(executor: WvAgentExecutor): AgentExecutionPort<WvExecutionContext> {
+  return { execute: <TInput, TOutput>(request: OpaqueAgentExecutionRequest<TInput, WvExecutionContext>) => {
+    const context = request.context;
+    if (!isAgentDefinition(context.agent)) return Promise.resolve({ status: "failed", kind: "execution", error: "WV execution context is invalid" });
+    return executor.execute({ agent: context.agent, input: request.input, evidence: context.evidence, snapshots: context.snapshots, deterministicResults: context.deterministicResults }) as Promise<AgentExecution<TOutput>>;
+  } };
+}
 export interface IntakeResult { readonly kind: "intake"; readonly caseId: string; readonly caseScope: "well-reconciliation" | "insufficient-scope"; readonly suppliedClues: Readonly<Record<string, string | undefined>>; readonly missingEvidence: readonly string[]; readonly ambiguousInputs: readonly string[]; readonly candidateQueries: readonly string[]; readonly route: "continue" | "request-records" | "human-review"; readonly evidenceIds: readonly string[]; }
 export interface ReconciliationResult { readonly kind: "reconciliation"; readonly caseId: string; readonly findings: readonly Finding[]; readonly conflicts: readonly Conflict[]; readonly unknowns: readonly Unknown[]; readonly evidenceRefs: readonly string[]; readonly route: "continue" | "request-records" | "human-review"; }
 export interface SynthesisResult { readonly kind: "synthesis"; readonly caseId: string; readonly findings: readonly Finding[]; readonly conflicts: readonly Conflict[]; readonly unknowns: readonly Unknown[]; readonly evidenceRefs: readonly string[]; readonly synthesis: string; readonly proposedRoute: "continue" | "request-records" | "human-review"; }
@@ -44,10 +56,12 @@ export function validateSynthesis(value: unknown): value is SynthesisResult { re
 export function flagshipSteps(agents: ReadonlyMap<string, AgentDefinition>, input: WvFlowInput, executor: WvAgentExecutor): readonly TypedStep[] {
   const agent = (id: string): AgentDefinition => { const definition = agents.get(id); if (!definition) throw new Error(`Missing canonical agent: ${id}`); return definition; };
   const intake = agent("land-case-intake"); const reconciler = agent("land-well-reconciler"); const synthesizer = agent("case-synthesizer");
+  const context = (agent: AgentDefinition) => ({ agent, evidence: input.sourceEvidence, snapshots: input.sourceSnapshots, deterministicResults: input.deterministicResults });
+  const opaque = asOpaqueAgentExecutor(executor);
   return [
-    typedStep<WvFlowInput, IntakeResult>({ id: intake.id, required: true, validateInput: validateWvFlowInput, validateOutput: validateIntake, execute: (stepInput) => executor.execute({ agent: intake, input: stepInput, evidence: input.sourceEvidence, snapshots: input.sourceSnapshots, deterministicResults: input.deterministicResults }) }),
-    typedStep<IntakeResult, ReconciliationResult>({ id: reconciler.id, required: true, validateInput: (value): value is IntakeResult => validateIntake(value) && value.caseId === input.caseId, validateOutput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => executor.execute({ agent: reconciler, input: stepInput, evidence: input.sourceEvidence, snapshots: input.sourceSnapshots, deterministicResults: input.deterministicResults }) }),
-    typedStep<ReconciliationResult, SynthesisResult>({ id: synthesizer.id, required: true, validateInput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), validateOutput: (value): value is SynthesisResult => validateSynthesis(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => executor.execute({ agent: synthesizer, input: stepInput, evidence: input.sourceEvidence, snapshots: input.sourceSnapshots, deterministicResults: input.deterministicResults }) }),
+    typedStep<WvFlowInput, IntakeResult>({ id: intake.id, required: true, validateInput: validateWvFlowInput, validateOutput: validateIntake, execute: (stepInput) => opaque.execute({ agentId: intake.id, input: stepInput, context: context(intake) }) }),
+    typedStep<IntakeResult, ReconciliationResult>({ id: reconciler.id, required: true, validateInput: (value): value is IntakeResult => validateIntake(value) && value.caseId === input.caseId, validateOutput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => opaque.execute({ agentId: reconciler.id, input: stepInput, context: context(reconciler) }) }),
+    typedStep<ReconciliationResult, SynthesisResult>({ id: synthesizer.id, required: true, validateInput: (value): value is ReconciliationResult => validateReconciliation(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), validateOutput: (value): value is SynthesisResult => validateSynthesis(value) && value.caseId === input.caseId && nestedFindingsBelongTo(value, input.caseId), execute: (stepInput) => opaque.execute({ agentId: synthesizer.id, input: stepInput, context: context(synthesizer) }) }),
   ];
 }
 
@@ -62,6 +76,7 @@ export async function executeWvLandFlow(input: WvFlowInput, agents: ReadonlyMap<
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+function isAgentDefinition(value: unknown): value is AgentDefinition { return isRecord(value) && typeof value.id === "string" && typeof value.version === "string"; }
 function isStringArray(value: unknown): value is readonly string[] { return Array.isArray(value) && value.every((item) => typeof item === "string"); }
 function isStringRecord(value: unknown): value is Readonly<Record<string, string | undefined>> { return isRecord(value) && Object.values(value).every((item) => item === undefined || typeof item === "string"); }
 function isRoute(value: unknown): value is IntakeResult["route"] { return value === "continue" || value === "request-records" || value === "human-review"; }

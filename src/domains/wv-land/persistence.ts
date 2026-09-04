@@ -1,12 +1,13 @@
-import { link, mkdir, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { mkdir, readFile, readdir } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import type { RunRecord } from "../../core/run-record";
 import type { RunStore } from "../../core/storage";
 import { FileRunStore } from "../../storage/file-run-store";
 import { WvLandJsonCodec } from "./serialization";
 import { validateWvFlowResult, type SubmittedLandPackage, type WvEvidence, type WvFlowResult } from "./flow";
 import type { SourceSnapshot } from "./contracts";
+import { deepFreeze, encodeCanonicalJson, writeNewAtomic } from "../../storage/file-primitives";
+import { reviewState } from "../../review/lifecycle";
 
 export type ReviewState = "pending-human-review" | "approved" | "rejected" | "revision-requested";
 export type ReviewDecisionKind = Exclude<ReviewState, "pending-human-review">;
@@ -137,7 +138,8 @@ export class FileWvLandRunStore implements WvLandRunStore {
     }
     const runDirectory = this.runDirectory(aggregate.caseId, aggregate.runId);
     await mkdir(join(runDirectory, "review-decisions"), { recursive: true });
-    const canonicalAggregate = canonicalJson(aggregate);
+    const canonicalAggregate = encodeCanonicalJson(aggregate);
+    validateStoredAggregate(JSON.parse(canonicalAggregate) as unknown);
     await writeNewAtomic(join(runDirectory, "aggregate.json"), canonicalAggregate);
     if (reviewPacketId !== undefined) {
       const packet: ReviewPacket = {
@@ -204,7 +206,7 @@ export class FileWvLandRunStore implements WvLandRunStore {
     const packet = JSON.parse(await readFile(join(this.runDirectory(caseId, runId), "review-packet.json"), "utf8")) as ReviewPacket;
     validatePacket(packet, aggregate);
     const decisions = await this.readDecisions(caseId, runId, packet);
-    return deepFreeze({ packet, state: decisions.length === 0 ? "pending-human-review" : decisions[decisions.length - 1].decision, decisions });
+    return deepFreeze({ packet, ...reviewState(decisions) });
   }
 
   async recordReviewDecision(caseId: string, runId: string, input: {
@@ -382,27 +384,6 @@ function decodeEvidence(value: WvEvidence): WvEvidence {
   return "productionRecordId" in value.normalizedFacts ? codec.decodeProductionEvidence(JSON.stringify(value)) : codec.decodeWellEvidence(JSON.stringify(value));
 }
 
-function canonicalJson(value: WvLandRunAggregate): string {
-  assertJsonSafe(value);
-  const serialized = JSON.stringify(value, null, 2);
-  if (serialized === undefined) throw new Error("Aggregate cannot be serialized");
-  const parsed = JSON.parse(serialized) as unknown;
-  validateStoredAggregate(parsed);
-  return serialized + "\n";
-}
-
-function assertJsonSafe(value: unknown, seen = new Set<object>()): void {
-  if (value === undefined || typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") throw new Error("Aggregate contains a JSON-lossy value");
-  if (typeof value === "number" && !Number.isFinite(value)) throw new Error("Aggregate contains a non-finite number");
-  if (typeof value !== "object" || value === null) return;
-  if (seen.has(value)) throw new Error("Aggregate contains a circular value");
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null && !Array.isArray(value)) throw new Error("Aggregate contains an unsupported object");
-  seen.add(value);
-  for (const child of Object.values(value)) assertJsonSafe(child, seen);
-  seen.delete(value);
-}
-
 function validatePacket(packet: ReviewPacket, aggregate: WvLandRunAggregate): void {
   if (!isRecord(packet) || typeof packet.reviewPacketId !== "string" || typeof packet.caseId !== "string" || typeof packet.runId !== "string" || typeof packet.resultRef !== "string" || !isStringArray(packet.snapshotIds) || !isTimestamp(packet.createdAt) || (packet.revisionOfPacketId !== undefined && typeof packet.revisionOfPacketId !== "string") || !["continue", "request-records", "human-review"].includes(packet.proposedRoute) || packet.reviewPacketId !== aggregate.reviewPacketId || packet.caseId !== aggregate.caseId || packet.runId !== aggregate.runId || packet.resultRef !== join("cases", aggregate.caseId, "runs", aggregate.runId, "aggregate.json") || JSON.stringify(packet.snapshotIds) !== JSON.stringify(aggregate.snapshotIds) || aggregate.result.synthesis === undefined || packet.proposedRoute !== aggregate.result.synthesis.proposedRoute) throw new Error("Invalid review packet relationship");
 }
@@ -437,23 +418,4 @@ function isTimestamp(value: unknown): value is string {
 
 function assertSafeId(value: string, label: string): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value)) throw new Error(label + " contains unsupported path characters");
-}
-
-async function writeNewAtomic(path: string, content: string): Promise<void> {
-  const temporary = path + "." + randomUUID() + ".tmp";
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(temporary, content, "utf8");
-  try {
-    await link(temporary, path);
-    await unlink(temporary);
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
-}
-
-function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
-  for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
-  return Object.freeze(value);
 }
