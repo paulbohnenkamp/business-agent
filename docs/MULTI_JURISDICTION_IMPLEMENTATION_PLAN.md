@@ -1,7 +1,6 @@
 # Multi-jurisdiction implementation plan
 
-**Phase 7.5 status: implementation in progress; Step 0 committed on
-2026-09-04.**
+**Phase 7.5 status: migration complete on 2026-09-04.**
 
 This is a living, behavior-preserving checklist for the architecture in
 [MULTI_JURISDICTION_ARCHITECTURE.md](MULTI_JURISDICTION_ARCHITECTURE.md). It
@@ -10,25 +9,25 @@ behavior is the compatibility baseline.
 
 ## Global acceptance criteria
 
-- [ ] WV remains the flagship jurisdiction, not a runtime assumption.
-- [ ] Shared evidence/judgment/review is distinct from shared land
+- [x] WV remains the flagship jurisdiction, not a runtime assumption.
+- [x] Shared evidence/judgment/review is distinct from shared land
       administration and from WV implementation.
-- [ ] Jurisdiction policy is distinct from publisher parsing and retrieval.
-- [ ] `SourceAdapter` remains distinct from `RetrievalProvider`.
-- [ ] WVDEP and WVGES remain independent evidence sources.
-- [ ] Generic evaluation mechanics are independent from land grading and WV
+- [x] Jurisdiction policy is distinct from publisher parsing and retrieval.
+- [x] `SourceAdapter` remains distinct from `RetrievalProvider`.
+- [x] WVDEP and WVGES remain independent evidence sources.
+- [x] Generic evaluation mechanics are independent from land grading and WV
       cases.
-- [ ] Generic durable-run and review mechanics are independent from land
+- [x] Generic durable-run and review mechanics are independent from land
       aggregate state.
-- [ ] Deterministic parsing, normalization, arithmetic, hashing, and dates
+- [x] Deterministic parsing, normalization, arithmetic, hashing, and dates
       remain services/tools, not agent responsibilities.
-- [ ] Agents remain bounded evidence-based judgment components; flows retain
+- [x] Agents remain bounded evidence-based judgment components; flows retain
       sequencing/routing.
-- [ ] Human review and the public-evidence-is-not-title-proof boundary remain
+- [x] Human review and the public-evidence-is-not-title-proof boundary remain
       explicit.
-- [ ] No 50-state framework, plugin system, generalized DAG engine, or
+- [x] No 50-state framework, plugin system, generalized DAG engine, or
       speculative registry is introduced.
-- [ ] All Phase 1–7 tests and fixture behavior remain green after every step.
+- [x] All Phase 1–7 tests and fixture behavior remain green after every step.
 
 ## Ordered extraction steps
 
@@ -501,4 +500,7 @@ Ohio production adapter or mapping.
 
 - 2026-09-04 — Phase 7.5 baseline verified at `b57c44f8d7486a4320b7a0f720e83e4e009220eb`; clean working tree confirmed.
 - 2026-09-04 — Official WV, ODNR, PA DEP, and PASDA metadata/documentation consulted; no datasets downloaded.
-- 2026-09-04 — Architecture and extraction sequence documented; implementation remains intentionally unstarted.
+- 2026-09-04 — Architecture and extraction sequence documented as the implementation baseline.
+- 2026-09-04 — Step 0 committed as `046db76`; neutral runtime contracts and explicit composition verified.
+- 2026-09-04 — Steps 1–5 committed as `7d69a63` and `1986ba7`; architecture checks, reusable evaluation mechanics, shared evidence contracts, and minimal land projections verified.
+- 2026-09-04 — Steps 6–12 committed as `ffed45c`; jurisdiction policy, opaque execution, file/review mechanics, layered evaluation, and design-only second-jurisdiction proof verified.
