@@ -18,6 +18,8 @@
 | [Research](LAND-ADMIN-RESEARCH.md) | Explain the research behind the domain recipes |
 | [WV land architecture](WV_LAND_ARCHITECTURE.md) | Define the West Virginia oil-and-gas flagship architecture and source boundaries |
 | [WV land implementation plan](WV_LAND_IMPLEMENTATION_PLAN.md) | Track the phased implementation and verification plan |
+| [Multi-jurisdiction architecture](MULTI_JURISDICTION_ARCHITECTURE.md) | Define shared land, jurisdiction, publisher, evidence, evaluation, and review boundaries |
+| [Multi-jurisdiction implementation plan](MULTI_JURISDICTION_IMPLEMENTATION_PLAN.md) | Track the incremental behavior-preserving extraction plan |
 | [pstack prompts](prompts/README.md) | Reusable build/review prompts |
 
 ## Repository layers

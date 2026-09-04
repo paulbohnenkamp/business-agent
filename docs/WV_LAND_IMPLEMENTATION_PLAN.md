@@ -1,5 +1,12 @@
 # West Virginia land implementation plan
 
+The shared-versus-jurisdiction extraction authority is now
+[MULTI_JURISDICTION_ARCHITECTURE.md](MULTI_JURISDICTION_ARCHITECTURE.md), with
+the behavior-preserving follow-up checklist in
+[MULTI_JURISDICTION_IMPLEMENTATION_PLAN.md](MULTI_JURISDICTION_IMPLEMENTATION_PLAN.md).
+This plan continues to describe WV as the flagship implementation and does not
+authorize Ohio or Pennsylvania work.
+
 This plan turns [the West Virginia land architecture](WV_LAND_ARCHITECTURE.md) into checkable work. It covers documentation-approved implementation only. No phase in this document is complete until the repository is inspected, the acceptance criteria pass, and the listed verification is recorded.
 
 ## Working rules
